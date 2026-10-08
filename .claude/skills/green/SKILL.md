@@ -1,22 +1,26 @@
 ---
 name: green
-description: Make red cases pass with the least change, then ready the commit.
+description: Make the red cases pass with the smallest change.
 disable-model-invocation: true
 ---
 
 ## Goal
 $ARGUMENTS
 
-## Least change
-The smallest change that flips the Then, at whatever layer it lives. Never edit a spec to make it pass. A spec that turns out wrong is reported, not quietly fixed.
+## Smallest change
+Make the smallest change that makes the Then pass. The change can be at any layer.
+
+Do not change a spec to make it pass. If a spec is wrong, do not correct it. Tell the user about it.
 
 ## Prove
-Green is every new case passing and every sibling still passing.
+The work is green when all the new cases pass and all the other cases continue to pass.
 
 ## Record
-In `progress.md`, set each row to `green`. Under the table, list debt the least change left for `/refactor`: hardcoded values, names that no longer fit, duplication. One line each.
+In `progress.md`, set each row to `green`.
 
-Commit the draft repo: `git -C .claude/currentdocs commit -am "<slug>: green <cases>"`.
+Under the table, write a list of the debt that the smallest change made for `/refactor`. Examples are hardcoded values, names that are not correct now, and duplicate code. Write one line for each item.
+
+Commit the draft repository: `git -C .claude/currentdocs commit -am "<slug>: green <cases>"`.
 
 ## Stop
-Take no further action, offer to commit.
+Do not do more work. Ask the user if they want a commit.

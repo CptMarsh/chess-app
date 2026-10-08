@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: Improve green code to project standards with behavior fixed and the suite as the gate.
+description: Make the green code agree with the project standards. Do not change the behavior. Use the test suite as the gate.
 disable-model-invocation: true
 ---
 
@@ -8,17 +8,21 @@ disable-model-invocation: true
 $ARGUMENTS
 
 ## Candidates
-From the debt list under `progress.md`'s table, then from the change itself:
-- Loose Coupling: code components should be able to be changed independently of each other.
-- High Cohesion: code components that are domain-related should live close together.
+First, find candidates in the debt list under the table in `progress.md`. Then find candidates in the change.
+- Loose coupling: You must be able to change one code component without a change to other components.
+- High cohesion: Keep code components of the same domain near each other.
 - SOLID.
-- Duplication across specs: step helpers written twice move into the shared DSL.
-- Standards: no comments, no file headers, no hidden defaults in helpers.
+- Duplicate code in specs: If two specs have the same step helper, move it into the shared DSL.
+- Standards: Do not use comments, file headers or hidden default values in helpers.
 
-List them, one line each, and get the list agreed before editing.
+Write a list of the candidates, with one line for each candidate. Make sure that the user agrees to the list before you change the code.
 
 ## Rules
-Behavior is fixed. No spec assertion or assertion message changes. A step helper may move or be renamed; the case's Given/When/Then lines still read the same. If a refactor needs an assertion changed, it is not a refactor: stop and send it to `/draft`.
+Do not change the behavior. Do not change a spec assertion or an assertion message.
+
+You can move or rename a step helper. The Given/When/Then lines of each case must stay the same.
+
+If a refactor needs a change to an assertion, it is not a refactor. Stop and send it to `/draft`.
 
 ## Stop
-Take no further action, offer to commit.
+Do not do more work. Ask the user if they want a commit.

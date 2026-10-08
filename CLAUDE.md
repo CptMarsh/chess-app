@@ -1,9 +1,9 @@
 # CHESS APP
 
-This is an app that should help me improve in chess.
+This is an app that helps people become better at chess.
 
 ## PROCESS
-We're practicing spec-driven-development using a red-green-refactor loop.
+We use spec-driven development with a red-green-refactor loop.
 
 ## DOCS
-Maintain Open-Knowledge-Format-style documentation under Docs/. Always start at `Docs/index.md`.
+Write and update the documentation in `Docs/`. Use the Open Knowledge Format style. Always start at `Docs/index.md`.

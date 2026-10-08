@@ -1,6 +1,6 @@
 ---
 name: red
-description: Write the failing spec for drafted Given/When/Then cases and prove each fails on its own Then.
+description: Write the failing spec for the Given/When/Then cases in the draft. Prove that each case fails on its own Then.
 disable-model-invocation: true
 ---
 
@@ -8,20 +8,27 @@ disable-model-invocation: true
 $ARGUMENTS
 
 ## Write
-One test per case, named for the outcome. The body is the case, one step call per line:
+Write one test for each case. Give the test a name that tells the outcome. The test body is the case. Write one step call on each line.
 
-- No speculative guards, no comments, no file header.
-- Production code is not touched to make a case compile beyond an honest stub: returns false, branch never taken, never `throw unimplemented`.
+- Do not add guards that are not necessary now.
+- Do not add comments or file headers.
+- Do not change production code to make a case compile. You can add a simple stub. For example, a function that returns false, or a branch that the code never runs. Do not use `throw unimplemented`.
 
 ## Prove
-A case is red only when it fails on its Then's message with its siblings green.
+A case is red only when these two conditions are true:
+- The case fails with the message of its Then.
+- All the other cases pass.
 
-A wrong red is anything else: build failure, harness failure, a Given that failed, an error from code the case does not target. A wrong red is diagnosed, not accepted. When the cause is a real bug in the arrange's path, fix it as the smallest change, record the fix, and prove again. When the fix is more than small, stop and ask.
+All other failures are wrong reds. Examples are a build failure, a harness failure, a Given that failed, and an error from code that the case does not test.
+
+Find the cause of each wrong red. Do not accept it. If the cause is a real bug in the code that the Given uses, fix it with the smallest change. Record the fix and prove the case again. If the fix is not small, stop and ask the user.
 
 ## Record
-In `progress.md`, set each proven row to `red` and put its red proof in: the verbatim failure line, one line. Record any arrange fix as a second line under the table, so `/green` can carry it into the commit.
+In `progress.md`, set each proven row to `red`. In the row, write its red proof: the failure line, word for word, on one line.
 
-Commit the draft repo: `git -C .claude/currentdocs commit -am "<slug>: red <cases>"`.
+If you fixed a bug in the code that the Given uses, record the fix on a second line under the table. Then `/green` can include the fix in the commit.
+
+Commit the draft repository: `git -C .claude/currentdocs commit -am "<slug>: red <cases>"`.
 
 ## Stop
-Do not make it pass. Report each case's red proof and any wrong reds you fixed on the way.
+Do not make the cases pass. For each case, tell the user its red proof. Also tell the user about each wrong red that you fixed.
