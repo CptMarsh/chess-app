@@ -1,34 +1,34 @@
 ---
 name: red
-description: Write the failing spec for the Given/When/Then cases in the draft. Prove that each case fails on its own Then.
+description: Write the spec for the Given/When/Then cases in the draft. Make sure that the Then of each case gives a failure.
 disable-model-invocation: true
 ---
 
-## Goal
+## Task
 $ARGUMENTS
 
 ## Write
-Write one test for each case. Give the test a name that tells the outcome. The test body is the case. Write one step call on each line.
+Write one test for each case. Give the test a name that tells the result. The test body is the case. Write one step call on each line.
 
-- Do not add guards that are not necessary now.
+- Do not add guards that are not necessary at this time.
 - Do not add comments or file headers.
-- Do not change production code to make a case compile. You can add a simple stub. For example, a function that returns false, or a branch that the code never runs. Do not use `throw unimplemented`.
+- Do not change production code to make the compiler accept the case. You can add a stub. The stub must be very small. For example, a function that gives `false`, or a branch that the code does not go into. Do not use `throw unimplemented`.
 
-## Prove
-A case is red only when these two conditions are true:
-- The case fails with the message of its Then.
-- All the other cases pass.
+## Make sure
+A case is red only in these two conditions:
+- The `Then` of the case gives a failure with its message.
+- All the other cases are green.
 
-All other failures are wrong reds. Examples are a build failure, a harness failure, a Given that failed, and an error from code that the case does not test.
+All other failures are incorrect reds. Examples are a compiler error, a harness failure, a failure in a `Given`, and an error in code that is not part of the case.
 
-Find the cause of each wrong red. Do not accept it. If the cause is a real bug in the code that the Given uses, fix it with the smallest change. Record the fix and prove the case again. If the fix is not small, stop and ask the user.
+Find the cause of each incorrect red. Do not accept it. If the cause is a bug in the code that the `Given` uses, correct it with the smallest change. Record the change and do the test again. If the change is not small, stop. Tell the user about the problem. The user must make the decision.
 
 ## Record
-In `progress.md`, set each proven row to `red`. In the row, write its red proof: the failure line, word for word, on one line.
+In `progress.md`, set the row of each red case to `red`. In the row, write the failure line from the test output, on one line. Do not change the text of the failure line.
 
-If you fixed a bug in the code that the Given uses, record the fix on a second line under the table. Then `/green` can include the fix in the commit.
+If you corrected a bug in the code that the `Given` uses, record the change on a new line below the table. Then `/green` can include the change in the commit.
 
 Commit the draft repository: `git -C .claude/currentdocs commit -am "<slug>: red <cases>"`.
 
 ## Stop
-Do not make the cases pass. For each case, tell the user its red proof. Also tell the user about each wrong red that you fixed.
+Do not make the cases green. For each case, tell the user its failure line. Also tell the user about each incorrect red that you corrected.

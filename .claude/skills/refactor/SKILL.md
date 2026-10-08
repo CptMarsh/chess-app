@@ -1,28 +1,28 @@
 ---
 name: refactor
-description: Make the green code agree with the project standards. Do not change the behavior. Use the test suite as the gate.
+description: Make the green code agree with the project standards. The code must operate the same. Use the test suite to make sure of this.
 disable-model-invocation: true
 ---
 
-## Goal
+## Task
 $ARGUMENTS
 
-## Candidates
-First, find candidates in the debt list under the table in `progress.md`. Then find candidates in the change.
-- Loose coupling: You must be able to change one code component without a change to other components.
+## Possible changes
+First, find possible changes in the list of technical debt below the table in `progress.md`. Then find possible changes in the new code.
+- Loose coupling: It must be possible to change one code component without a change to other components.
 - High cohesion: Keep code components of the same domain near each other.
 - SOLID.
-- Duplicate code in specs: If two specs have the same step helper, move it into the shared DSL.
-- Standards: Do not use comments, file headers or hidden default values in helpers.
+- The same code in two specs: If two specs have the same step helper, move it into the DSL (domain-specific language) that all specs use.
+- Project standards: Do not use comments or file headers. Do not use default values in helpers that the case does not show.
 
-Write a list of the candidates, with one line for each candidate. Make sure that the user agrees to the list before you change the code.
+Write a list of the possible changes, with one line for each change. Show the list to the user. Do not change the code before the user gives approval.
 
-## Rules
-Do not change the behavior. Do not change a spec assertion or an assertion message.
+## Limits
+The code must operate the same. Do not change a spec assertion or an assertion message.
 
-You can move or rename a step helper. The Given/When/Then lines of each case must stay the same.
+You can move or rename a step helper. The `Given`/`When`/`Then` lines of each case must stay the same.
 
-If a refactor needs a change to an assertion, it is not a refactor. Stop and send it to `/draft`.
+If it is necessary to change an assertion, the change is not a refactor. Stop and send it to `/draft`.
 
 ## Stop
-Do not do more work. Ask the user if they want a commit.
+Do not do more work. Tell the user that you can make a commit.
