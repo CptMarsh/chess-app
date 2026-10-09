@@ -1,1 +1,3 @@
-.claude/currentdocs/
+.claude/currentdocs
+node_modules
+dist
