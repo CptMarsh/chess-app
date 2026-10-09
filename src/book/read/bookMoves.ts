@@ -1,24 +1,32 @@
 import { Chess } from "chess.js";
-import type { LineAdded, Side } from "../events.ts";
+import type { LineAdded } from "../events.ts";
+import type { Projection } from "../projection.ts";
+import { bySide, type Side } from "../side.ts";
 import { positionKey } from "./positionKey.ts";
 
-export class BookMoves {
-  private readonly positions = { white: new Map<string, Set<string>>(), black: new Map<string, Set<string>>() };
+function replay(moves: string[]) {
+  const chess = new Chess();
+  const keys = moves.map((move) => {
+    const key = positionKey(chess.fen());
+    chess.move(move);
+    return key;
+  });
+  return { keys, end: positionKey(chess.fen()) };
+}
+
+export class BookMoves implements Projection {
+  private readonly positions = bySide(() => new Map<string, Set<string>>());
 
   movesAfter(side: Side, moves: string[]) {
-    const chess = new Chess();
-    for (const move of moves) chess.move(move);
-    return [...(this.positions[side].get(positionKey(chess.fen())) ?? [])];
+    return [...(this.positions[side].get(replay(moves).end) ?? [])];
   }
 
   apply(event: LineAdded) {
-    const chess = new Chess();
-    for (const move of event.moves) {
-      const key = positionKey(chess.fen());
-      const next = this.positions[event.side].get(key) ?? new Set<string>();
-      next.add(move);
-      this.positions[event.side].set(key, next);
-      chess.move(move);
-    }
+    const positions = this.positions[event.side];
+    replay(event.moves).keys.forEach((key, index) => {
+      const next = positions.get(key) ?? new Set<string>();
+      next.add(event.moves[index]);
+      positions.set(key, next);
+    });
   }
 }

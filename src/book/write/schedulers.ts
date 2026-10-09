@@ -1,3 +1,5 @@
+import { drain } from "./drain.ts";
+
 export type Scheduler = { schedule(task: () => void): void };
 
 export type ManualScheduler = Scheduler & { run(): void };
@@ -17,7 +19,7 @@ export function manualScheduler(): ManualScheduler {
       tasks.push(task);
     },
     run() {
-      for (let task = tasks.shift(); task; task = tasks.shift()) task();
+      drain(tasks, (task) => task());
     },
   };
 }

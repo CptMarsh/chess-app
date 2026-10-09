@@ -1,4 +1,4 @@
-import type { Side } from "../events.ts";
+import type { Side } from "../side.ts";
 
 export function readSide(orientation: string | undefined): Side | undefined {
   const side = orientation?.toLowerCase();

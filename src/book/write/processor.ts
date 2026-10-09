@@ -1,45 +1,49 @@
-import type { CommandStatuses } from "../../api/commandStatuses.ts";
 import type { EventStore } from "../eventStore.ts";
-import type { LineAdded } from "../events.ts";
-import { addPgn } from "./addPgn.ts";
+import type { BookEvent } from "../events.ts";
+import { addPgn, type HandlerResult } from "./addPgn.ts";
 import type { BookState } from "./bookState.ts";
 import type { Command } from "./commands.ts";
+import { drain } from "./drain.ts";
 import type { Scheduler } from "./schedulers.ts";
+
+export type Outcome = HandlerResult | { kind: "failed"; error: unknown };
+
+export type Processor = { enqueue(commandId: string, command: Command): void };
+
+type Parts = {
+  eventStore: EventStore;
+  state: BookState;
+  apply: (event: BookEvent) => void;
+  report: (commandId: string, outcome: Outcome) => void;
+  scheduler: Scheduler;
+};
 
 type Queued = { commandId: string; command: Command };
 
-export function createProcessor(
-  eventStore: EventStore,
-  state: BookState,
-  apply: (event: LineAdded) => void,
-  statuses: CommandStatuses,
-  scheduler: Scheduler,
-) {
+export function createProcessor({ eventStore, state, apply, report, scheduler }: Parts): Processor {
   const queue: Queued[] = [];
 
-  function runCommand({ commandId, command }: Queued) {
+  function outcomeOf(command: Command): Outcome {
     try {
       const result = addPgn(command, state);
-      if (!("type" in result)) {
-        statuses.record(commandId, { status: result.status, body: { message: result.message } });
-        return;
+      if (result.kind === "added") {
+        eventStore.append(result.event);
+        apply(result.event);
       }
-      eventStore.append(result);
-      apply(result);
-      statuses.record(commandId, { status: 201, body: { side: result.side, moves: result.moves } });
+      return result;
     } catch (error) {
-      statuses.record(commandId, { status: 500, body: { message: String(error) } });
+      return { kind: "failed", error };
     }
   }
 
-  function runQueue() {
-    for (let next = queue.shift(); next; next = queue.shift()) runCommand(next);
+  function runCommand({ commandId, command }: Queued) {
+    report(commandId, outcomeOf(command));
   }
 
   return {
-    enqueue(commandId: string, command: Command) {
+    enqueue(commandId, command) {
       queue.push({ commandId, command });
-      scheduler.schedule(runQueue);
+      scheduler.schedule(() => drain(queue, runCommand));
     },
   };
 }

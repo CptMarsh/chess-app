@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { startBookApp } from "../book/bookApp.ts";
 import type { EventStore } from "../book/eventStore.ts";
-import type { Side } from "../book/events.ts";
+import type { Side } from "../book/side.ts";
 import { manualScheduler, type ManualScheduler } from "../book/write/schedulers.ts";
 import { memoryEventStore } from "../storage/memoryEventStore.ts";
 import type { BookApi } from "./bookApi.ts";
@@ -13,6 +13,10 @@ type Book = {
   commandId: string;
   response?: ApiResponse<unknown>;
 };
+
+function expectStatus(book: Book, status: number) {
+  expect(book.response?.status).toBe(status);
+}
 
 function startBook(eventStore: EventStore): Book {
   const scheduler = manualScheduler();
@@ -92,7 +96,7 @@ export function thenTheBookHasLines(book: Book, side: Side, count: number) {
 }
 
 export function thenTheCommandStatusIs(book: Book, status: number) {
-  expect(book.response?.status).toBe(status);
+  expectStatus(book, status);
 }
 
 export function thenTheCommandStatusIsWithTheMessage(book: Book, status: number, message: string) {
@@ -100,7 +104,7 @@ export function thenTheCommandStatusIsWithTheMessage(book: Book, status: number,
 }
 
 export function thenTheCallerGets(book: Book, status: number) {
-  expect(book.response?.status).toBe(status);
+  expectStatus(book, status);
 }
 
 export function thenTheCallerGetsAcceptedWithACommandId(book: Book) {

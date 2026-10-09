@@ -1,7 +1,8 @@
-import type { BookApi } from "../api/bookApi.ts";
+import { createBookApi, type BookApi } from "../api/bookApi.ts";
 import { CommandStatuses } from "../api/commandStatuses.ts";
 import type { EventStore } from "./eventStore.ts";
-import type { LineAdded } from "./events.ts";
+import type { BookEvent } from "./events.ts";
+import type { Projection } from "./projection.ts";
 import { BookMoves } from "./read/bookMoves.ts";
 import { BookSummary } from "./read/bookSummary.ts";
 import { BookState } from "./write/bookState.ts";
@@ -12,30 +13,20 @@ export function startBookApp(eventStore: EventStore, scheduler: Scheduler): Book
   const state = new BookState();
   const bookMoves = new BookMoves();
   const bookSummary = new BookSummary();
-  const statuses = new CommandStatuses();
+  const projections: Projection[] = [state, bookMoves, bookSummary];
 
-  function apply(event: LineAdded) {
-    state.apply(event);
-    bookMoves.apply(event);
-    bookSummary.apply(event);
+  function apply(event: BookEvent) {
+    for (const projection of projections) projection.apply(event);
   }
 
   for (const event of eventStore.readAll()) apply(event);
-  const processor = createProcessor(eventStore, state, apply, statuses, scheduler);
-
-  return {
-    sendCommand(command) {
-      try {
-        const commandId = crypto.randomUUID();
-        statuses.record(commandId, { status: 202, body: { commandId } });
-        processor.enqueue(commandId, command);
-        return { status: 202, body: { commandId } };
-      } catch (error) {
-        return { status: 500, body: { message: String(error) } };
-      }
-    },
-    getCommandStatus: (commandId) => statuses.get(commandId),
-    getMovesAfter: (side, moves) => ({ status: 200, body: { moves: bookMoves.movesAfter(side, moves) } }),
-    getSummary: () => ({ status: 200, body: { ...bookSummary.counts } }),
-  };
+  const statuses = new CommandStatuses();
+  const processor = createProcessor({
+    eventStore,
+    state,
+    apply,
+    report: (commandId, outcome) => statuses.report(commandId, outcome),
+    scheduler,
+  });
+  return createBookApi({ processor, statuses, bookMoves, bookSummary });
 }
