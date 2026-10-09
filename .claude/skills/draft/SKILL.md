@@ -25,7 +25,8 @@ Keep the repository local. Do not add a remote. Do not push.
 Always write `spec.md` and `design.md`. Put the sections in the sequence that follows. This sequence makes the differences between versions easy to read.
 
 `spec.md`
-- `## Cases`: A list of cases. Give each case a number. Use this text for each case, on one line: `Given <arrangement>, when <action>, then <result>.` After the case, write its tier: `(unit)` or `(e2e)`.
+- `## Cases`: A list of cases. Give each case a number. Use this text for each case, on one line: `<scenario>: Given <arrangement>, when <action>, then <result>.` After the case, write its tier: `(unit)` or `(e2e)`.
+  - The scenario is a very short sentence. It tells the result that the reader can expect from the case. For example, write `A duplicate line is rejected with 409`. Do not write `Duplicate line`.
   - The result is an indication that the player sees or a value that the caller receives. It is not a class, delegate, flag or function.
   - A rule is a `(unit)` case.
   - An `(e2e)` case only makes sure that the components connect correctly. If a `(unit)` case can do the test of the logic, do not use an `(e2e)` case.
