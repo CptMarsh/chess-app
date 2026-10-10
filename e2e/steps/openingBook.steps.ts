@@ -14,10 +14,6 @@ When("the player pastes {string} and saves", async function (this: BookWorld, pg
   await this.save(pgn);
 });
 
-When("the player saves {string}", async function (this: BookWorld, pgn: string) {
-  await this.save(pgn);
-});
-
 When("the player saves {string} and reloads the page", async function (this: BookWorld, pgn: string) {
   await this.save(pgn);
   await this.page.reload();

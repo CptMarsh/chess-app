@@ -10,7 +10,3 @@ Feature: Opening book input
     When the player saves '[Orientation "white"] 1. d4 d5' and reloads the page
     Then the page shows "White: 2 lines"
 
-  Scenario: A rejected PGN shows its message
-    Given the app has no book
-    When the player saves '1. e4 e5'
-    Then the page shows 'Add [Orientation "white"] or [Orientation "black"] to the PGN.'

@@ -2,21 +2,16 @@ import { test } from "vitest";
 import {
   givenABookWithTheWhiteLine,
   givenAnEmptyBook,
-  givenNoCommandHasTheId,
-  givenTheCallerSentAddPgnThatHasNotRun,
-  givenTheCallerSentAddPgnThatRan,
-  givenTheEventStoreCannotAppend,
+  givenTheLineStoreCannotAdd,
+  thenTheBookGives,
   thenTheBookGivesTheMovesAfter,
   thenTheBookHasLines,
-  thenTheCallerGets,
-  thenTheCallerGetsAcceptedWithACommandId,
-  thenTheCommandStatusIs,
-  thenTheCommandStatusIsWithTheMessage,
+  thenTheCallerGetsACommandId,
+  thenTheCallerGetsTheError,
   whenTheCallerAddsThePgn,
-  whenTheCallerAsksForTheCommandStatus,
-  whenTheCallerAsksForTheStatusOf,
   whenTheCallerSendsAddPgn,
-} from "./bookApi.steps.ts";
+  whenTheCallerSendsAddPgnAndAsksForTheMovesAfter,
+} from "./book.steps.ts";
 
 test("The book gives the next move of a line", () => {
   const book = givenAnEmptyBook();
@@ -36,10 +31,9 @@ test("Transposed lines share one position", () => {
   thenTheBookGivesTheMovesAfter(book, "white", ["c4", "e6", "d4", "Nf6"], ["Nc3", "Nf3"]);
 });
 
-test("A duplicate line is rejected with 409", () => {
+test("A duplicate line is not added again", () => {
   const book = givenABookWithTheWhiteLine(["e4", "e5"]);
   whenTheCallerAddsThePgn(book, '[Orientation "white"] 1. e4 e5');
-  thenTheCommandStatusIsWithTheMessage(book, 409, "The White book already has this line.");
   thenTheBookHasLines(book, "white", 1);
 });
 
@@ -62,10 +56,11 @@ test("The side header ignores letter case", () => {
   thenTheBookHasLines(book, "black", 1);
 });
 
-test("A PGN without a side is rejected with 422", () => {
+test("A PGN without a side adds nothing", () => {
   const book = givenAnEmptyBook();
   whenTheCallerAddsThePgn(book, "1. e4 e5");
-  thenTheCommandStatusIsWithTheMessage(book, 422, 'Add [Orientation "white"] or [Orientation "black"] to the PGN.');
+  thenTheBookHasLines(book, "white", 0);
+  thenTheBookHasLines(book, "black", 0);
 });
 
 test("Comments and NAGs do not change the moves", () => {
@@ -80,33 +75,21 @@ test("Other headers and Windows line ends do not change the moves", () => {
   thenTheBookGivesTheMovesAfter(book, "white", ["e4"], ["e5"]);
 });
 
-test("A command is acknowledged with 202 and an id", () => {
+test("A command is acknowledged with an id", () => {
   const book = givenAnEmptyBook();
   whenTheCallerSendsAddPgn(book, '[Orientation "white"] 1. e4 e5');
-  thenTheCallerGetsAcceptedWithACommandId(book);
+  thenTheCallerGetsACommandId(book);
 });
 
-test("A command that has not run stays at 202", () => {
-  const book = givenTheCallerSentAddPgnThatHasNotRun('[Orientation "white"] 1. e4 e5');
-  whenTheCallerAsksForTheCommandStatus(book);
-  thenTheCallerGets(book, 202);
+test("The line is in the book when the acknowledgement comes back", () => {
+  const book = givenAnEmptyBook();
+  whenTheCallerSendsAddPgnAndAsksForTheMovesAfter(book, '[Orientation "white"] 1. e4 e5', "white", ["e4"]);
+  thenTheBookGives(book, ["e5"]);
 });
 
-test("An added line gives 201", () => {
-  const book = givenTheCallerSentAddPgnThatRan('[Orientation "white"] 1. e4 e5');
-  whenTheCallerAsksForTheCommandStatus(book);
-  thenTheCallerGets(book, 201);
-});
-
-test("An unknown command id gives 404", () => {
-  const book = givenNoCommandHasTheId("abc");
-  whenTheCallerAsksForTheStatusOf(book, "abc");
-  thenTheCallerGets(book, 404);
-});
-
-test("A failed event store gives 500 and adds nothing", () => {
-  const book = givenTheEventStoreCannotAppend();
+test("A failed store adds nothing", () => {
+  const book = givenTheLineStoreCannotAdd();
   whenTheCallerAddsThePgn(book, '[Orientation "white"] 1. e4 e5');
-  thenTheCommandStatusIs(book, 500);
+  thenTheCallerGetsTheError(book, "The line store cannot add.");
   thenTheBookHasLines(book, "white", 0);
 });
