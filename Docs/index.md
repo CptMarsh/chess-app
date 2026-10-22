@@ -9,7 +9,7 @@ description: The start of the documentation of the chess app.
 The chess app helps a person become better at chess. It runs only in the browser.
 
 ## Concepts
-- [Command and query bus](command-query-bus.md): the router that sends each command and each query to its listener.
+- [Command and query bus](command-query-bus.md): the router that sends each command and each query to its handler.
 - [Opening book](opening-book.md): the White and Black lines that the player saves from PGN.
 
 ## Process

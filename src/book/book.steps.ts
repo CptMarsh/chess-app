@@ -3,13 +3,13 @@ import type { Ack } from "../bus/bus.ts";
 import { memoryLineStore } from "../storage/memoryLineStore.ts";
 import { attachBook } from "./book.ts";
 import type { LineStore } from "./lineStore.ts";
-import { createBookBus, type BookBus } from "./messages.ts";
+import { AddPgn, BookBus, MovesAfter, Summary } from "./messages.ts";
 import type { Side } from "./side.ts";
 
 type Book = { bus: BookBus; ack?: Ack; error?: unknown; moves?: string[] };
 
 function startBook(store: LineStore): Book {
-  const bus = createBookBus();
+  const bus = new BookBus();
   attachBook(bus, store);
   return { bus };
 }
@@ -42,16 +42,16 @@ export function whenTheCallerAddsThePgn(book: Book, pgn: string) {
 }
 
 export function whenTheCallerSendsAddPgn(book: Book, pgn: string) {
-  book.ack = book.bus.send({ type: "AddPgn", pgn });
+  book.ack = book.bus.send(new AddPgn(pgn));
 }
 
 export function whenTheCallerSendsAddPgnAndAsksForTheMovesAfter(book: Book, pgn: string, side: Side, moves: string[]) {
   whenTheCallerSendsAddPgn(book, pgn);
-  book.moves = book.bus.ask({ type: "MovesAfter", side, moves });
+  book.moves = book.bus.ask(new MovesAfter(side, moves));
 }
 
 export function thenTheBookGivesTheMovesAfter(book: Book, side: Side, moves: string[], expected: string[]) {
-  expect(new Set(book.bus.ask({ type: "MovesAfter", side, moves }))).toEqual(new Set(expected));
+  expect(new Set(book.bus.ask(new MovesAfter(side, moves)))).toEqual(new Set(expected));
 }
 
 export function thenTheBookGives(book: Book, expected: string[]) {
@@ -59,7 +59,7 @@ export function thenTheBookGives(book: Book, expected: string[]) {
 }
 
 export function thenTheBookHasLines(book: Book, side: Side, count: number) {
-  expect(book.bus.ask({ type: "Summary" })).toEqual(expect.objectContaining({ [side]: count }));
+  expect(book.bus.ask(new Summary())).toEqual(expect.objectContaining({ [side]: count }));
 }
 
 export function thenTheCallerGetsACommandId(book: Book) {

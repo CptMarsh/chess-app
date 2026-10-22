@@ -1,37 +1,45 @@
 export type Ack = { commandId: string };
 
-type Message = { type: string };
+export abstract class Query<Answer> {
+  declare readonly answer?: Answer;
+}
 
-type OfType<M extends Message, T> = Extract<M, { type: T }>;
+export type AnswerOf<Q> = Q extends Query<infer Answer> ? Answer : never;
 
-export type Bus<Command extends Message, Query extends Message, Answers extends Record<Query["type"], unknown>> = {
-  onCommand<T extends Command["type"]>(type: T, listener: (command: OfType<Command, T>) => void): void;
-  onQuery<T extends Query["type"]>(type: T, listener: (query: OfType<Query, T>) => Answers[T]): void;
-  send(command: Command): Ack;
-  ask<Q extends Query>(query: Q): Answers[Q["type"]];
-};
+export interface CommandHandler<C> {
+  handle(command: C): void;
+}
 
-export function createBus<
-  Command extends Message,
-  Query extends Message,
-  Answers extends Record<Query["type"], unknown>,
->(): Bus<Command, Query, Answers> {
-  const commandListeners = new Map<string, (command: Command) => void>();
-  const queryListeners = new Map<string, (query: Query) => unknown>();
+export interface QueryHandler<Q extends Query<unknown>> {
+  handle(query: Q): AnswerOf<Q>;
+}
 
-  function attach<L>(listeners: Map<string, L>, type: string, listener: L) {
-    if (listeners.has(type)) throw new Error(`The type ${type} already has a listener.`);
-    listeners.set(type, listener);
+type MessageClass<T> = new (...args: never[]) => T;
+
+function attach<H>(handlers: Map<Function, H>, type: Function, handler: H) {
+  if (handlers.has(type)) throw new Error(`The type ${type.name} already has a listener.`);
+  handlers.set(type, handler);
+}
+
+export class Bus<C extends object, Q extends Query<unknown>> {
+  readonly #commandHandlers = new Map<Function, CommandHandler<C>>();
+  readonly #queryHandlers = new Map<Function, QueryHandler<Q>>();
+
+  onCommand<T extends C>(type: MessageClass<T>, handler: CommandHandler<T>) {
+    attach(this.#commandHandlers, type, handler as CommandHandler<C>);
   }
 
-  return {
-    onCommand: (type, listener) => attach(commandListeners, type, listener as (command: Command) => void),
-    onQuery: (type, listener) => attach(queryListeners, type, listener as (query: Query) => unknown),
-    send(command) {
-      const commandId = crypto.randomUUID();
-      commandListeners.get(command.type)?.(command);
-      return { commandId };
-    },
-    ask: (query) => queryListeners.get(query.type)?.(query) as Answers[typeof query.type],
-  };
+  onQuery<T extends Q>(type: MessageClass<T>, handler: QueryHandler<T>) {
+    attach(this.#queryHandlers, type, handler as QueryHandler<Q>);
+  }
+
+  send(command: C): Ack {
+    const commandId = crypto.randomUUID();
+    this.#commandHandlers.get(command.constructor)?.handle(command);
+    return { commandId };
+  }
+
+  ask<T extends Q>(query: T): AnswerOf<T> {
+    return this.#queryHandlers.get(query.constructor)?.handle(query) as AnswerOf<T>;
+  }
 }

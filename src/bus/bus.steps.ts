@@ -1,59 +1,78 @@
 import { expect } from "vitest";
-import { createBus, type Bus } from "./bus.ts";
+import { Bus, Query } from "./bus.ts";
 
-type TestCommand = { type: "A" } | { type: "B" };
-type TestQuery = { type: "Last" } | { type: "Echo"; value: number };
-type TestAnswers = { Last: string; Echo: number };
+class A {}
 
-type TestBus = { bus: Bus<TestCommand, TestQuery, TestAnswers>; answer?: unknown; error?: unknown };
+class B {}
+
+const commands = { A, B };
+
+type CommandName = keyof typeof commands;
+
+class Last extends Query<string> {}
+
+class Echo extends Query<number> {
+  readonly value: number;
+
+  constructor(value: number) {
+    super();
+    this.value = value;
+  }
+}
+
+type TestBus = { bus: Bus<A | B, Last | Echo>; answer?: unknown; error?: unknown };
 
 function emptyBus(): TestBus {
-  return { bus: createBus<TestCommand, TestQuery, TestAnswers>() };
+  return { bus: new Bus<A | B, Last | Echo>() };
 }
 
 export function givenABusWithCommandListenersForAAndBAndAQueryListenerForLast() {
   const testBus = emptyBus();
   let last = "";
-  testBus.bus.onCommand("A", () => {
-    last = "A";
+  testBus.bus.onCommand(A, {
+    handle() {
+      last = "A";
+    },
   });
-  testBus.bus.onCommand("B", () => {
-    last = "B";
+  testBus.bus.onCommand(B, {
+    handle() {
+      last = "B";
+    },
   });
-  testBus.bus.onQuery("Last", () => last);
+  testBus.bus.onQuery(Last, { handle: () => last });
   return testBus;
 }
 
 export function givenABusWithAQueryListenerForEchoThatGivesItsInput() {
   const testBus = emptyBus();
-  testBus.bus.onQuery("Echo", (query) => query.value);
+  testBus.bus.onQuery(Echo, { handle: (query) => query.value });
   return testBus;
 }
 
-export function givenABusWithACommandListenerFor(type: TestCommand["type"]) {
+export function givenABusWithACommandListenerFor(name: CommandName) {
   const testBus = emptyBus();
-  testBus.bus.onCommand(type, () => {});
+  testBus.bus.onCommand(commands[name], { handle() {} });
   return testBus;
 }
 
-export function whenTheCallerSends(testBus: TestBus, type: TestCommand["type"]) {
-  testBus.bus.send({ type });
+export function whenTheCallerSends(testBus: TestBus, name: CommandName) {
+  testBus.bus.send(new commands[name]());
 }
 
 export function whenTheCallerAsksEchoWith(testBus: TestBus, value: number) {
-  testBus.answer = testBus.bus.ask({ type: "Echo", value });
+  testBus.answer = testBus.bus.ask(new Echo(value));
 }
 
-export function whenTheCallerAddsASecondCommandListenerFor(testBus: TestBus, type: TestCommand["type"]) {
+export function whenTheCallerAddsASecondCommandListenerFor(testBus: TestBus, name: CommandName) {
   try {
-    testBus.bus.onCommand(type, () => {});
+    testBus.bus.onCommand(commands[name], { handle() {} });
   } catch (error) {
     testBus.error = error;
   }
 }
 
-export function thenLastGives(testBus: TestBus, type: TestCommand["type"]) {
-  expect(testBus.bus.ask({ type: "Last" })).toBe(type);
+export function thenLastGives(testBus: TestBus, name: CommandName) {
+  expect(testBus.bus.ask(new Last())).toBe(name);
 }
 
 export function thenTheCallerGets(testBus: TestBus, value: number) {

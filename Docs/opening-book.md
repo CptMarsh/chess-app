@@ -11,13 +11,13 @@ tags: [book, pgn]
 The player pastes a PGN and clicks Save. The page shows the number of lines for each side.
 
 ## Messages
-| Message | Kind | Listener |
+| Message (`src/book/messages.ts`) | Kind | Handler |
 |---|---|---|
-| `AddPgn { pgn }` | command | `src/book/commands/addPgn.ts` |
-| `MovesAfter { side, moves }` | query | `src/book/queries/movesAfter.ts` |
-| `Summary` | query | `src/book/queries/summary.ts` |
+| `new AddPgn(pgn)` | command | `AddPgnHandler` in `src/book/commands/addPgnHandler.ts` |
+| `new MovesAfter(side, moves)` | query | `MovesAfterHandler` in `src/book/queries/movesAfterHandler.ts` |
+| `new Summary()` | query | `SummaryHandler` in `src/book/queries/summaryHandler.ts` |
 
-`attachBook(bus, store)` in `src/book/book.ts` attaches the three listeners to the [bus](command-query-bus.md).
+`BookBus` is the [bus](command-query-bus.md) for these messages. `attachBook(bus, store)` in `src/book/book.ts` makes the three handlers with the store and attaches them.
 
 ## Rules
 - The header `[Orientation "white"]` or `[Orientation "black"]` gives the side. Letter case is not important.
