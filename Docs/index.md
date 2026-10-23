@@ -11,6 +11,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 ## Concepts
 - [Command and query bus](command-query-bus.md): the router that sends each command and each query to its handler.
 - [Line](line.md): the rules of one opening line, as commands and a query on the bus.
+- [Lichess explorer](lichess-explorer.md): the adapter that gets the most common replies of a position from Lichess.
 
 ## Specs
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer. We did not build it yet.
