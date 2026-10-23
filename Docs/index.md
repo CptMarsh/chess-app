@@ -13,6 +13,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Line](line.md): the rules of one opening line, as commands and a query on the bus.
 - [Lichess explorer](lichess-explorer.md): the adapter that gets the most common replies of a position from Lichess.
 - [Stockfish engine](engine.md): the adapter that judges a move with Stockfish in a Web Worker.
+- [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
 
 ## Specs
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer. We did not build it yet.
