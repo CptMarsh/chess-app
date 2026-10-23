@@ -18,6 +18,16 @@ Before the first `StartLine`, the board shows the start position and the status 
 |---|---|
 | `StartLine(rating)` | Starts a new line at the start position. Status: `yourMove`. The message is empty and there is no arrow. If the rating is not a whole number of 0 or more, it throws `The rating must be a whole number, 0 or more.` and the state does not change. The line does not keep the rating. |
 | `PlayYourMove(move)` | Plays your move (UCI, for example `e2e4`). It clears the message and the arrow. Status: `waitingForReply` for your first move. Status: `checkingYourMove` for each other move. |
+| `PlayReply(replies)` | Picks one reply and plays it. Status: `yourMove`. The message and the arrow stay. Your next move clears them. If `replies` is empty, the line ends with `No games at your level after this position.` |
+| `StopLine(message)` | Ends the line with the message. Status: `ended`. |
+
+## How the reply is picked
+
+Each reply has `uci`, `san` and `games`. The handler multiplies the random number by the total of the `games`. It picks the first reply where the running total of the `games` is more than that product. For example, with 30 and 10 games, the random number 0.74 picks the first reply (0.74 × 40 = 29.6) and 0.76 picks the second (0.76 × 40 = 30.4). The default random function is `Math.random`.
+
+## Ending a line
+
+When a line ends, the status is `ended`. The end text joins the current message with one space. If one of them is empty, the other one stays as it is.
 
 ## Query
 

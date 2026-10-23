@@ -6,10 +6,14 @@ import {
   thenTheLineIs,
   thenThereAreNoLegalMoves,
   thenYouGetTheError,
+  whenTheLineStops,
+  whenTheReplyIsPickedFrom,
   whenYouPlay,
   whenYouStartALine,
 } from "./line.steps.ts";
 
+const E5 = { uci: "e7e5", san: "e5", games: 30 };
+const C5 = { uci: "c7c5", san: "c5", games: 10 };
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 test("Before the first line, the board is locked", () => {
@@ -35,5 +39,34 @@ test("Your first move waits for the reply without a judgement", () => {
   const line = givenANewLine(1450);
   whenYouPlay(line, "e2e4");
   thenTheLineIs(line, { moves: ["e4"], status: "waitingForReply" });
+  thenThereAreNoLegalMoves(line);
+});
+
+test("The random number 0.74 picks the first of 30 and 10 games", () => {
+  const line = givenANewLine(1450, 0.74);
+  whenYouPlay(line, "e2e4");
+  whenTheReplyIsPickedFrom(line, [E5, C5]);
+  thenTheLineIs(line, { moves: ["e4", "e5"], status: "yourMove" });
+});
+
+test("The random number 0.76 picks the second of 30 and 10 games", () => {
+  const line = givenANewLine(1450, 0.76);
+  whenYouPlay(line, "e2e4");
+  whenTheReplyIsPickedFrom(line, [E5, C5]);
+  thenTheLineIs(line, { moves: ["e4", "c5"], status: "yourMove" });
+});
+
+test("No replies ends the line", () => {
+  const line = givenANewLine(1450);
+  whenYouPlay(line, "e2e4");
+  whenTheReplyIsPickedFrom(line, []);
+  thenTheLineIs(line, { status: "ended", message: "No games at your level after this position." });
+});
+
+test("StopLine ends the line with its message", () => {
+  const line = givenANewLine(1450);
+  whenYouPlay(line, "e2e4");
+  whenTheLineStops(line, "Lichess did not answer (status 503).");
+  thenTheLineIs(line, { status: "ended", message: "Lichess did not answer (status 503)." });
   thenThereAreNoLegalMoves(line);
 });

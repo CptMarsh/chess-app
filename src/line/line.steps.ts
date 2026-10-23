@@ -1,6 +1,15 @@
 import { expect } from "vitest";
 import { attachLine } from "./line.ts";
-import { CurrentLine, LineBus, PlayYourMove, StartLine, type LineView } from "./messages.ts";
+import {
+  CurrentLine,
+  LineBus,
+  PlayReply,
+  PlayYourMove,
+  StartLine,
+  StopLine,
+  type LineView,
+  type Reply,
+} from "./messages.ts";
 
 type TestLine = { bus: LineBus; error?: unknown };
 
@@ -26,6 +35,14 @@ export function whenYouStartALine(line: TestLine, rating: number) {
 
 export function whenYouPlay(line: TestLine, move: string) {
   line.bus.send(new PlayYourMove(move));
+}
+
+export function whenTheReplyIsPickedFrom(line: TestLine, replies: Reply[]) {
+  line.bus.send(new PlayReply(replies));
+}
+
+export function whenTheLineStops(line: TestLine, message: string) {
+  line.bus.send(new StopLine(message));
 }
 
 export function thenTheLineIs(line: TestLine, expected: Partial<LineView>) {
