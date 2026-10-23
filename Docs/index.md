@@ -14,9 +14,10 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Lichess explorer](lichess-explorer.md): the adapter that gets the most common replies of a position from Lichess.
 - [Stockfish engine](engine.md): the adapter that judges a move with Stockfish in a Web Worker.
 - [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
+- [Trainer screen](trainer-screen.md): the screen that shows the rating field, the board, the moves, the message and the status.
 
 ## Specs
-- [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer. We did not build it yet.
+- [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer.
 - [Opening trainer plan](superpowers/plans/2026-10-23-opening-trainer.md): the tasks that build the opening trainer.
 
 ## Process

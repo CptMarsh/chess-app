@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "chess.js": "1.4.0",
+    "chessground": "9.2.1",
     "stockfish": "19.0.1"
   }
 }
