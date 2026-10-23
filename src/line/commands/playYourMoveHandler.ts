@@ -1,6 +1,7 @@
 import type { CommandHandler } from "../../bus/bus.ts";
 import type { LineState } from "../lineState.ts";
 import type { PlayYourMove } from "../messages.ts";
+import { uciMove } from "../uciMove.ts";
 
 export class PlayYourMoveHandler implements CommandHandler<PlayYourMove> {
   readonly #state: LineState;
@@ -11,11 +12,7 @@ export class PlayYourMoveHandler implements CommandHandler<PlayYourMove> {
 
   handle(command: PlayYourMove) {
     const { move } = command;
-    this.#state.chess.move({
-      from: move.slice(0, 2),
-      to: move.slice(2, 4),
-      promotion: move.slice(4) || undefined,
-    });
+    this.#state.chess.move(uciMove(move));
     this.#state.yourMoves += 1;
     this.#state.message = "";
     this.#state.arrow = null;

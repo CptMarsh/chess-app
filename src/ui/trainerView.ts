@@ -48,6 +48,7 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     const line = bus.ask(new CurrentLine());
     board.set({
       fen: line.fen,
+      lastMove: undefined,
       turnColor: line.fen.split(" ")[1] === "w" ? "white" : "black",
       movable: { color: line.status === "yourMove" ? "white" : undefined, dests: line.legalMoves as Map<Key, Key[]> },
     });

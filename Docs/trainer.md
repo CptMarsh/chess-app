@@ -31,3 +31,5 @@ Your first move gets no judgement. The explorer is not asked after the line ends
 ## Errors
 
 If the engine or the explorer throws an error, the trainer sends `StopLine(error.message)` and calls `show()`. Then it stops.
+
+The same `try` also catches a throw from a handler (`JudgeYourMove` or `PlayReply`) and from `show()`. The line then ends with the message of that error, and the screen does not freeze.

@@ -28,6 +28,8 @@ The request has the header `Authorization: Bearer <token>`.
 
 `games` is `white + draws + black` from the answer of the explorer.
 
+The explorer gives castling as king to rook, for example `e8h8`. `chess.js` refuses this form. Thus the adapter changes the `uci` of a castling reply to the standard form: `e8h8` becomes `e8g8`, and `e8a8` becomes `e8c8`. The adapter looks at `san`: only a `san` that starts with `O-O` is castling. A rook or queen move from e8 to h8 does not change.
+
 ## Rating band
 `ratingBand(rating)` gives the highest of 0, 1000, 1200, 1400, 1600, 1800, 2000, 2200 and 2500 that is not more than the rating. For example, 1450 gives 1400, 800 gives 0, and 2600 gives 2500.
 

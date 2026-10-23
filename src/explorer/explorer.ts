@@ -49,6 +49,13 @@ export class LichessExplorer {
       throw new Error(`Lichess did not answer (status ${answer.status}).`);
     }
     const { moves } = (await answer.json()) as { moves: Move[] };
-    return moves.map(({ uci, san, white, draws, black }) => ({ uci, san, games: white + draws + black }));
+    return moves.map(({ uci, san, white, draws, black }) => ({ uci: standardUci(uci, san), san, games: white + draws + black }));
   }
+}
+
+// The explorer gives castling as king to rook (e8h8). Standard UCI has king to target square (e8g8).
+function standardUci(uci: string, san: string): string {
+  if (!san.startsWith("O-O")) return uci;
+  const file = san.startsWith("O-O-O") ? "c" : "g";
+  return uci.slice(0, 2) + file + uci[3];
 }

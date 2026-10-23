@@ -1,6 +1,7 @@
 import type { CommandHandler } from "../../bus/bus.ts";
 import type { LineState } from "../lineState.ts";
 import type { JudgeYourMove } from "../messages.ts";
+import { uciMove } from "../uciMove.ts";
 
 const ALLOWED_LOSS = 20;
 const MATE = 10000;
@@ -21,7 +22,7 @@ export class JudgeYourMoveHandler implements CommandHandler<JudgeYourMove> {
       state.message = "Best move.";
     } else {
       state.chess.undo();
-      const best = state.chess.move(toMove(bestMove));
+      const best = state.chess.move(uciMove(bestMove));
       const loss = bestScore - yourScore;
       if (loss <= ALLOWED_LOSS) {
         state.chess.undo();
@@ -46,8 +47,4 @@ export class JudgeYourMoveHandler implements CommandHandler<JudgeYourMove> {
       state.status = "waitingForReply";
     }
   }
-}
-
-function toMove(uci: string) {
-  return { from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4) || undefined };
 }

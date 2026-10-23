@@ -28,12 +28,13 @@ A line is a success when you know a line of 5 moves. In it, your moves 2 to 5 ar
 | Moves of real players | Lichess opening explorer, Lichess games, speeds blitz, rapid and classical. |
 | Engine | Stockfish 19 lite, one thread, in a Web Worker, depth 16. |
 | Chess rules | `chess.js` (BSD-2-Clause). |
-| Board | `chessground` (GPL-3.0). |
+| Board | `chessground` (GPL-3.0-or-later). |
 
 ## Facts that we checked (2026-10-23)
 - The explorer (`https://explorer.lichess.ovh/lichess`) refuses a request without a token: `401 Authorization Required`.
 - The explorer CORS preflight allows any origin and the `Authorization` header. Thus the browser can send the token.
 - The `stockfish` npm package 19.0.1 has `bin/stockfish-19-lite-single.js` (28 KB) and `bin/stockfish-19-lite-single.wasm` (1.9 MB). Its licence is GPL-3.0.
+- The explorer gives castling as king to rook, for example `e8h8` for Black short castling. `chess.js` refuses `e8h8` and accepts `e8g8`.
 
 ## Architecture
 The bus is synchronous, and handlers must not call `send`. The explorer and the engine are asynchronous. Thus one async unit, the trainer, waits for them and then sends a command that contains the result. All rules are in synchronous handlers.
@@ -97,6 +98,8 @@ The band is the highest of 0, 1000, 1200, 1400, 1600, 1800, 2000, 2200 and 2500 
 
 Each reply has `uci`, `san` and `games`. `games` is `white + draws + black` from the explorer answer.
 
+The explorer changes a castling `uci` to the standard form, for example `e8h8` to `e8g8` and `e8a8` to `e8c8`. It looks at `san`: only a `san` that starts with `O-O` is castling.
+
 ### Engine (`src/engine/`)
 When the worker starts, the engine sends `uci` and waits for `uciok`.
 
@@ -124,7 +127,7 @@ If the engine or the explorer throws, the trainer sends `StopLine(error.message)
 ### UI (`src/ui/`)
 ```
 Rating [ 1450 ]  [ New line ]
-+-------------+  1. e4 e5 2. Nf3 Nc6 3. Bb5
++-------------+  1. e4 e5 2. Nf3 Nc6 3. Bb5 a6
 |             |
 |    board    |  Bc4 loses 0.8 pawns.
 |  (White)    |  The best move is Bb5.

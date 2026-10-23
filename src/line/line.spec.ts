@@ -105,18 +105,29 @@ test("A move that loses more than 20 centipawns is replaced", () => {
   });
 });
 
+test("The message and the arrow stay after the reply", () => {
+  const line = givenALineAfter(["e2e4", "e7e5"]);
+  whenYouPlay(line, "f1a6");
+  whenTheEngineGives(line, verdict("g1f3", 30, -250));
+  whenTheReplyIsPickedFrom(line, [{ uci: "b8c6", san: "Nc6", games: 1 }]);
+  thenTheLineIs(line, {
+    status: "yourMove",
+    message: "Ba6 loses 2.8 pawns. The best move is Nf3.", arrow: { from: "g1", to: "f3" },
+  });
+});
+
 test("A move that allows mate is replaced", () => {
   const line = givenALineAfter(["f2f3", "e7e5"]);
   whenYouPlay(line, "g2g4");
   whenTheEngineGives(line, verdict("e2e4", -50, -10000));
-  thenTheLineIs(line, { moves: ["f3", "e5", "e4"], message: "g4 allows mate. The best move is e4." });
+  thenTheLineIs(line, { moves: ["f3", "e5", "e4"], message: "g4 allows mate. The best move is e4.", arrow: { from: "e2", to: "e4" } });
 });
 
 test("A move that misses a mate is replaced, and the mate ends the line", () => {
   const line = givenALineAfter(["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6"]);
   whenYouPlay(line, "d2d3");
   whenTheEngineGives(line, verdict("h5f7", 10000, 300));
-  thenTheLineIs(line, { status: "ended", message: "d3 misses a mate. The best move is Qxf7#. Checkmate." });
+  thenTheLineIs(line, { status: "ended", message: "d3 misses a mate. The best move is Qxf7#. Checkmate.", arrow: { from: "h5", to: "f7" } });
 });
 
 test("Castling is compared as e1g1", () => {

@@ -20,7 +20,7 @@ Rating [ 1450 ]  [ New line ]
 |  (White)    |
 |             |
 +-------------+
-1. e4 e5 2. Nf3 Nc6 3. Bb5
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6
 Bc4 loses 0.8 pawns. The best move is Bb5.
 Status: your move
 ```
@@ -43,6 +43,7 @@ Status: your move
 - The board gets the FEN and the side to move (field 2 of the FEN).
 - You can move a White piece only when the status is `yourMove`. The board lets you drop a piece only on a legal square from `legalMoves`.
 - If the line has an arrow, the board shows it in green. If not, the board shows no arrow.
+- The board marks no last move. `CurrentLine` does not hold the last move, and chessground would mark an old move.
 - The **New line** button is disabled while the status is `checkingYourMove` or `waitingForReply`. Thus a late answer cannot go into a different line.
 
 | Status | Status text |
@@ -83,7 +84,7 @@ When you drop a piece, the screen sends the move in UCI to `trainer.yourMove`, f
 1. Put your Lichess token in `.env.local`. See [Lichess explorer](lichess-explorer.md).
 2. Run `npm run dev`.
 
-`chessground` 9.2.1 is GPL-3.0 licensed. The screen uses its 3 style sheets: `chessground.base.css`, `chessground.brown.css` and `chessground.cburnett.css`.
+`chessground` 9.2.1 is GPL-3.0-or-later licensed. The screen uses its 3 style sheets: `chessground.base.css`, `chessground.brown.css` and `chessground.cburnett.css`.
 
 ## Tests
 

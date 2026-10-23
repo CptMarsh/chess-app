@@ -42,6 +42,24 @@ test("Each reply gets the total of its games", async () => {
   thenTheRepliesAre(explorer, [{ uci: "e7e5", san: "e5", games: 30 }, { uci: "c7c5", san: "c5", games: 6 }]);
 });
 
+test("A castling reply comes as standard UCI", async () => {
+  const explorer = givenAnExplorerThatAnswers(200, { moves: [
+    { uci: "e8h8", san: "O-O", white: 1, draws: 1, black: 1 },
+    { uci: "e8a8", san: "O-O-O", white: 1, draws: 1, black: 1 },
+    { uci: "e1h1", san: "O-O+", white: 1, draws: 1, black: 1 },
+    { uci: "e1a1", san: "O-O-O#", white: 1, draws: 1, black: 1 },
+    { uci: "e8h8", san: "Rh8", white: 1, draws: 1, black: 1 },
+  ] });
+  await whenYouAskForReplies(explorer, FEN, 1450);
+  thenTheRepliesAre(explorer, [
+    { uci: "e8g8", san: "O-O", games: 3 },
+    { uci: "e8c8", san: "O-O-O", games: 3 },
+    { uci: "e1g1", san: "O-O+", games: 3 },
+    { uci: "e1c1", san: "O-O-O#", games: 3 },
+    { uci: "e8h8", san: "Rh8", games: 3 },
+  ]);
+});
+
 test.each([
   [401, "Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token."],
   [429, "Lichess got too many requests. Wait one minute, then start a new line."],

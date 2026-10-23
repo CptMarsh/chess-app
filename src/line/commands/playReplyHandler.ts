@@ -1,6 +1,7 @@
 import type { CommandHandler } from "../../bus/bus.ts";
 import type { LineState } from "../lineState.ts";
 import type { PlayReply } from "../messages.ts";
+import { uciMove } from "../uciMove.ts";
 
 export class PlayReplyHandler implements CommandHandler<PlayReply> {
   readonly #state: LineState;
@@ -22,11 +23,7 @@ export class PlayReplyHandler implements CommandHandler<PlayReply> {
     let running = 0;
     const picked = replies.find((reply) => (running += reply.games) > target) ?? replies[0];
     const { uci } = picked;
-    this.#state.chess.move({
-      from: uci.slice(0, 2),
-      to: uci.slice(2, 4),
-      promotion: uci.slice(4) || undefined,
-    });
+    this.#state.chess.move(uciMove(uci));
     this.#state.status = "yourMove";
   }
 }
