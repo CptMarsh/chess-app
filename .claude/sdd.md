@@ -6,7 +6,7 @@ The folder for the permanent documentation: `Docs/`.
 ## Tests
 - Unit: Vitest. Files: `src/**/<subject>.spec.ts`, with the step helpers in `src/**/<subject>.steps.ts`.
 - E2E: Cucumber with Playwright. Files: `e2e/features/*.feature`, with the steps in `e2e/steps/*.ts`.
-- Model specs: `src/book/book.spec.ts`, `e2e/features/opening-book.feature`.
+- Model specs: `src/bus/bus.spec.ts`.
 - Forbidden stub: `throw new Error("unimplemented")`.
 
 ## Gates

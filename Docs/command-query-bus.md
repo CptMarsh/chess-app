@@ -27,6 +27,3 @@ Commands and queries are classes. A query class extends `Query<Answer>`, which g
 - Handlers must not call `send`.
 - The bus finds the handler by the constructor of the message. Thus there are no type strings.
 - `Bus<C, Q>` has the command and query classes as type arguments. The compiler rejects a message of a different class, a handler for a different class, and an answer of the wrong type.
-
-## Related
-- [Opening book](opening-book.md) attaches its handlers to the bus.

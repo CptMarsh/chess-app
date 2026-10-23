@@ -6,21 +6,16 @@ let server: ViteDevServer;
 let browser: Browser;
 let appUrl: string;
 
-export class BookWorld extends World {
+export class AppWorld extends World {
   context!: BrowserContext;
   page!: Page;
 
   async openApp() {
     await this.page.goto(appUrl);
   }
-
-  async save(pgn: string) {
-    await this.page.getByRole("textbox").fill(pgn);
-    await this.page.getByRole("button", { name: "Save" }).click();
-  }
 }
 
-setWorldConstructor(BookWorld);
+setWorldConstructor(AppWorld);
 
 BeforeAll({ timeout: 60_000 }, async () => {
   server = await createServer({ server: { port: 0 }, logLevel: "silent" });
@@ -29,12 +24,12 @@ BeforeAll({ timeout: 60_000 }, async () => {
   browser = await chromium.launch();
 });
 
-Before(async function (this: BookWorld) {
+Before(async function (this: AppWorld) {
   this.context = await browser.newContext();
   this.page = await this.context.newPage();
 });
 
-After(async function (this: BookWorld) {
+After(async function (this: AppWorld) {
   await this.context.close();
 });
 
