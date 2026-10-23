@@ -2,6 +2,7 @@ import { expect } from "vitest";
 import { attachLine } from "./line.ts";
 import {
   CurrentLine,
+  JudgeYourMove,
   LineBus,
   PlayReply,
   PlayYourMove,
@@ -9,6 +10,7 @@ import {
   StopLine,
   type LineView,
   type Reply,
+  type Verdict,
 } from "./messages.ts";
 
 type TestLine = { bus: LineBus; error?: unknown };
@@ -31,6 +33,23 @@ export function whenYouStartALine(line: TestLine, rating: number) {
   } catch (error) {
     line.error = error;
   }
+}
+
+export function givenALineAfter(moves: string[]): TestLine {
+  const line = givenANewLine(1450);
+  moves.forEach((move, index) => {
+    if (index % 2 === 0) {
+      line.bus.send(new PlayYourMove(move));
+      if (index > 0) line.bus.send(new JudgeYourMove({ bestMove: move, bestScore: 0, yourScore: 0 }));
+    } else {
+      line.bus.send(new PlayReply([{ uci: move, san: "", games: 1 }]));
+    }
+  });
+  return line;
+}
+
+export function whenTheEngineGives(line: TestLine, verdict: Verdict) {
+  line.bus.send(new JudgeYourMove(verdict));
 }
 
 export function whenYouPlay(line: TestLine, move: string) {

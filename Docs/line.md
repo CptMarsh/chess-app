@@ -18,12 +18,31 @@ Before the first `StartLine`, the board shows the start position and the status 
 |---|---|
 | `StartLine(rating)` | Starts a new line at the start position. Status: `yourMove`. The message is empty and there is no arrow. If the rating is not a whole number of 0 or more, it throws `The rating must be a whole number, 0 or more.` and the state does not change. The line does not keep the rating. |
 | `PlayYourMove(move)` | Plays your move (UCI, for example `e2e4`). It clears the message and the arrow. Status: `waitingForReply` for your first move. Status: `checkingYourMove` for each other move. |
+| `JudgeYourMove(verdict)` | Judges your last move. See "Judging your move". Status: `waitingForReply`, or `ended`. |
 | `PlayReply(replies)` | Picks one reply and plays it. Status: `yourMove`. The message and the arrow stay. Your next move clears them. If `replies` is empty, the line ends with `No games at your level after this position.` |
 | `StopLine(message)` | Ends the line with the message. Status: `ended`. |
 
 ## How the reply is picked
 
 Each reply has `uci`, `san` and `games`. The handler multiplies the random number by the total of the `games`. It picks the first reply where the running total of the `games` is more than that product. For example, with 30 and 10 games, the random number 0.74 picks the first reply (0.74 × 40 = 29.6) and 0.76 picks the second (0.76 × 40 = 30.4). The default random function is `Math.random`.
+
+## Judging your move
+
+A verdict has `bestMove` (UCI), `bestScore` and `yourScore`. The scores are in centipawns from the White side. A mate for White is +10000. A mate for Black is -10000. The loss is `bestScore - yourScore`.
+
+The handler compares your move with `bestMove` as UCI (`lan`), not as SAN. For example, castling is `e1g1` and a promotion is `b7a8q`.
+
+| Condition | Message | Board |
+|---|---|---|
+| Your move is `bestMove`. | `Best move.` | Your move stays. |
+| The loss is 20 or less. | `Good. The best move was Nf3.` | Your move stays. |
+| The loss is more than 20, and `yourScore` is -10000. | `g4 allows mate. The best move is e4.` | The best move replaces your move. The arrow shows it. |
+| The loss is more than 20, and `bestScore` is +10000. | `Bc4 misses a mate. The best move is Qxf7#.` | The best move replaces your move. The arrow shows it. |
+| The loss is more than 20 in all other conditions. | `Bc4 loses 0.8 pawns. The best move is Nf3.` | The best move replaces your move. The arrow shows it. |
+
+The pawn value is the loss divided by 100, with one decimal. The SAN of the best move comes from the position before your move.
+
+After the judgement, if the move on the board gives checkmate, the line ends and the message gets `Checkmate.` at its end. If not, the line ends after the judgement of your fifth move. In all other conditions the status is `waitingForReply`.
 
 ## Ending a line
 
