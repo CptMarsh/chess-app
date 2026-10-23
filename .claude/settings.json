@@ -1,5 +1,8 @@
 {
   "worktree": {
     "bgIsolation": "none"
+  },
+  "enabledPlugins": {
+    "superpowers@anthropic-plugin-directory": true
   }
 }
