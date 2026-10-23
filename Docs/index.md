@@ -13,6 +13,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 
 ## Specs
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer. We did not build it yet.
+- [Opening trainer plan](superpowers/plans/2026-10-23-opening-trainer.md): the tasks that build the opening trainer.
 
 ## Process
 We use spec-driven development with a red-green-refactor loop. The unit specs are in `src/**/*.spec.ts` (Vitest). The e2e scenarios are in `e2e/features/` (Cucumber.js and Playwright).
