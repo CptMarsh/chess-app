@@ -1,3 +1,5 @@
 .claude/currentdocs
 node_modules
 dist
+*.local
+public/stockfish
