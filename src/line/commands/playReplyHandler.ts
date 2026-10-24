@@ -22,8 +22,10 @@ export class PlayReplyHandler implements CommandHandler<PlayReply> {
     const target = this.#random() * total;
     let running = 0;
     const picked = replies.find((reply) => (running += reply.games) > target) ?? replies[0];
-    const { uci } = picked;
+    const { uci, percent } = picked;
     this.#state.chess.move(uciMove(uci));
-    this.#state.status = "yourMove";
+    this.#state.percents.push(percent);
+    this.#state.eval = null;
+    this.#state.status = "checkingPosition";
   }
 }

@@ -7,14 +7,15 @@ const ANY_ORIGIN = { "access-control-allow-origin": "*" };
 
 Given("the explorer replies in turn:", async function (this: AppWorld, table: DataTable) {
   const rows = table.raw();
+  await this.context.unroute(EXPLORER);
   await this.context.route(EXPLORER, (route) => {
     const request = route.request();
     if (request.method() === "OPTIONS") {
       return route.fulfill({ status: 204, headers: { ...ANY_ORIGIN, "access-control-allow-headers": "authorization" } });
     }
     const fullmove = Number(new URL(request.url()).searchParams.get("fen")!.split(" ")[5]);
-    const [uci, san] = rows[fullmove - 1];
-    return route.fulfill({ headers: ANY_ORIGIN, json: { moves: [{ uci, san, white: 1, draws: 0, black: 0 }] } });
+    const [uci, san, percent] = rows[fullmove - 1];
+    return route.fulfill({ headers: ANY_ORIGIN, json: { white: 100, draws: 0, black: 0, moves: [{ uci, san, white: Number(percent), draws: 0, black: 0 }] } });
   });
 });
 
@@ -24,8 +25,19 @@ Given("the explorer refuses the token", async function (this: AppWorld) {
   );
 });
 
-Given("the player starts a line with the rating {string}", async function (this: AppWorld, rating: string) {
+Given("the player opens the app", async function (this: AppWorld) {
   await this.openApp();
+});
+
+Given("the player chooses the color {string}", async function (this: AppWorld, label: string) {
+  await this.page.getByLabel("Color").selectOption({ label });
+});
+
+Given("the player chooses {int} moves", async function (this: AppWorld, moves: number) {
+  await this.page.getByLabel("Moves").fill(String(moves));
+});
+
+Given("the player starts a line with the rating {string}", async function (this: AppWorld, rating: string) {
   await this.page.getByLabel("Rating").fill(rating);
   await this.page.getByRole("button", { name: "New line" }).click();
 });
@@ -36,14 +48,37 @@ When("the player plays {string}", async function (this: AppWorld, moves: string)
   }
 });
 
+Then("the Moves field shows {string}", async function (this: AppWorld, moves: string) {
+  assert.equal(await this.page.getByLabel("Moves").inputValue(), moves);
+});
+
 Then("the moves are {string}", async function (this: AppWorld, moves: string) {
   await this.waitForText("#moves", "is", moves);
+});
+
+Then("the board shows the Black side", async function (this: AppWorld) {
+  await this.page.waitForSelector("#board.orientation-black", { timeout: 30_000 });
 });
 
 Then("the moves do not contain {string}", async function (this: AppWorld, move: string) {
   await this.waitForText("#status", "is", "Status: your move");
   const shown = (await this.page.textContent("#moves")) ?? "";
   assert.ok(!shown.includes(move), `#moves shows "${shown}".`);
+});
+
+Then("the eval shows a pawn value", async function (this: AppWorld) {
+  await this.waitForText("#status", "is", "Status: your move");
+  const shown = (await this.page.textContent("#eval")) ?? "";
+  assert.match(shown, /^Eval: ([+-]\d+\.\d|0\.0)$/);
+});
+
+Then("the eval bar has a height", async function (this: AppWorld) {
+  const height = await this.page.evaluate(() => document.querySelector<HTMLElement>("#evalBarWhite")!.style.height);
+  assert.match(height, /^\d+(\.\d+)?%$/);
+});
+
+Then("the accuracy is {string}", async function (this: AppWorld, accuracy: string) {
+  await this.waitForText("#accuracy", "is", `Accuracy: ${accuracy}`);
 });
 
 Then("the status is {string}", async function (this: AppWorld, status: string) {

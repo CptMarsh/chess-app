@@ -1,12 +1,10 @@
-import type { Verdict } from "../line/messages.ts";
-
 export type EngineWorker = Pick<Worker, "postMessage" | "addEventListener">;
 
 const DEPTH = 16;
 const MATE = 10000;
 const NOT_STARTED = "The engine did not start. Reload the page.";
 
-type Search = { bestMove: string; score: number };
+export type Analysis = { bestMove: string; score: number };
 type Waiting = { onLine: (line: string) => void; onFailure: () => void };
 
 export class StockfishEngine {
@@ -26,19 +24,20 @@ export class StockfishEngine {
     this.#ready.catch(() => {});
   }
 
-  async judge(fen: string, move: string): Promise<Verdict> {
+  async analyse(fen: string): Promise<Analysis> {
     await this.#ready;
     this.#worker.postMessage("ucinewgame");
     await this.#ask("isready", "readyok");
-    const best = await this.#search(fen, `go depth ${DEPTH}`);
-    if (move === best.bestMove) {
-      return { bestMove: best.bestMove, bestScore: best.score, yourScore: best.score };
-    }
-    const yours = await this.#search(fen, `go depth ${DEPTH} searchmoves ${move}`);
-    return { bestMove: best.bestMove, bestScore: best.score, yourScore: yours.score };
+    return this.#search(fen, `go depth ${DEPTH}`);
   }
 
-  async #search(fen: string, go: string): Promise<Search> {
+  async score(fen: string, move: string): Promise<number> {
+    await this.#ready;
+    const yours = await this.#search(fen, `go depth ${DEPTH} searchmoves ${move}`);
+    return yours.score;
+  }
+
+  async #search(fen: string, go: string): Promise<Analysis> {
     this.#worker.postMessage(`position fen ${fen}`);
     const lines = await this.#ask(go, "bestmove");
     let score = 0;

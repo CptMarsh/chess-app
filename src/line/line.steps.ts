@@ -2,13 +2,16 @@ import { expect } from "vitest";
 import { attachLine } from "./line.ts";
 import {
   CurrentLine,
+  JudgePosition,
   JudgeYourMove,
   LineBus,
   PlayReply,
   PlayYourMove,
   StartLine,
   StopLine,
+  type Color,
   type LineView,
+  type PlayedMove,
   type Reply,
   type Verdict,
 } from "./messages.ts";
@@ -23,13 +26,14 @@ export function givenNoLine(random = 0): TestLine {
 
 export function givenANewLine(rating: number, random = 0): TestLine {
   const line = givenNoLine(random);
-  line.bus.send(new StartLine(rating));
+  line.bus.send(new StartLine(rating, "white", 5));
+  line.bus.send(new JudgePosition(0));
   return line;
 }
 
-export function whenYouStartALine(line: TestLine, rating: number) {
+export function whenYouStartALine(line: TestLine, rating: number, color: Color = "white", moves = 5) {
   try {
-    line.bus.send(new StartLine(rating));
+    line.bus.send(new StartLine(rating, color, moves));
   } catch (error) {
     line.error = error;
   }
@@ -42,14 +46,31 @@ export function givenALineAfter(moves: string[]): TestLine {
       line.bus.send(new PlayYourMove(move));
       if (index > 0) line.bus.send(new JudgeYourMove({ bestMove: move, bestScore: 0, yourScore: 0 }));
     } else {
-      line.bus.send(new PlayReply([{ uci: move, san: "", games: 1 }]));
+      line.bus.send(new PlayReply([{ uci: move, san: "", games: 1, percent: 1 }]));
+      line.bus.send(new JudgePosition(0));
     }
   });
   return line;
 }
 
+export function whenTheEngineExamines(line: TestLine, score: number) {
+  line.bus.send(new JudgePosition(score));
+}
+
 export function whenTheEngineGives(line: TestLine, verdict: Verdict) {
   line.bus.send(new JudgeYourMove(verdict));
+}
+
+export function whenTheEngineGivesAVerdictThatThrows(line: TestLine, verdict: Verdict) {
+  try {
+    line.bus.send(new JudgeYourMove(verdict));
+  } catch (error) {
+    line.error = error;
+  }
+}
+
+export function thenTheLineThrew(line: TestLine) {
+  expect(line.error).toBeInstanceOf(Error);
 }
 
 export function whenYouPlay(line: TestLine, move: string) {
@@ -64,8 +85,13 @@ export function whenTheLineStops(line: TestLine, message: string) {
   line.bus.send(new StopLine(message));
 }
 
-export function thenTheLineIs(line: TestLine, expected: Partial<LineView>) {
-  expect(line.bus.ask(new CurrentLine())).toMatchObject(expected);
+export function thenTheLineIs(line: TestLine, expected: Partial<Omit<LineView, "moves">> & { moves?: string[] }) {
+  const view = line.bus.ask(new CurrentLine());
+  expect({ ...view, moves: view.moves.map(({ san }) => san) }).toMatchObject(expected);
+}
+
+export function thenTheMovesAre(line: TestLine, moves: PlayedMove[]) {
+  expect(line.bus.ask(new CurrentLine()).moves).toEqual(moves);
 }
 
 export function thenTheLegalMovesFrom(line: TestLine, square: string, targets: string[]) {

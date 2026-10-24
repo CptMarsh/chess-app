@@ -1,17 +1,20 @@
 import { Chess } from "chess.js";
 import { expect } from "vitest";
+import type { Analysis } from "../engine/engine.ts";
 import { attachLine } from "../line/line.ts";
-import { CurrentLine, LineBus, type LineView, type Reply, type Verdict } from "../line/messages.ts";
+import { CurrentLine, LineBus, type Color, type LineView, type Reply } from "../line/messages.ts";
 import { Trainer } from "./trainer.ts";
 
 type TestTrainer = {
   trainer: Trainer;
   bus: LineBus;
-  engineCalls: { fen: string; move: string }[];
+  analyseCalls: string[];
+  scoreCalls: { fen: string; move: string }[];
   explorerCalls: { fen: string; rating: number }[];
   shown: { count: number };
   error?: unknown;
-  answerEngine?: (verdict: Verdict) => void;
+  answerAnalysis?: (analysis: Analysis) => void;
+  answerScore?: (score: number) => void;
   answerExplorer?: (replies: Reply[]) => void;
 };
 
@@ -19,16 +22,22 @@ const DEFAULT_REPLIES = ["e7e5", "b8c6", "a7a6", "g8f6"];
 const SAN: Record<string, string> = { e7e5: "e5", b8c6: "Nc6", a7a6: "a6", g8f6: "Nf6" };
 
 function build(
-  judge: (test: TestTrainer, move: string) => Promise<Verdict>,
+  analyse: (test: TestTrainer) => Promise<Analysis>,
+  score: (test: TestTrainer) => Promise<number>,
   replies: (test: TestTrainer) => Promise<Reply[]>,
+  failingShow?: Error,
 ): TestTrainer {
   const bus = new LineBus();
   attachLine(bus, () => 0);
-  const test = { bus, engineCalls: [], explorerCalls: [], shown: { count: 0 } } as unknown as TestTrainer;
+  const test = { bus, analyseCalls: [], scoreCalls: [], explorerCalls: [], shown: { count: 0 } } as unknown as TestTrainer;
   const engine = {
-    judge: (fen: string, move: string) => {
-      test.engineCalls.push({ fen, move });
-      return judge(test, move);
+    analyse: (fen: string) => {
+      test.analyseCalls.push(fen);
+      return analyse(test);
+    },
+    score: (fen: string, move: string) => {
+      test.scoreCalls.push({ fen, move });
+      return score(test);
     },
   };
   const explorer = {
@@ -39,44 +48,62 @@ function build(
   };
   test.trainer = new Trainer(bus, engine, explorer, () => {
     test.shown.count += 1;
+    if (failingShow && test.shown.count === 1) throw failingShow;
   });
   return test;
 }
 
-function defaultVerdict(move: string): Promise<Verdict> {
-  return Promise.resolve({ bestMove: move, bestScore: 0, yourScore: 0 });
-}
+const defaultAnalysis = () => Promise.resolve({ bestMove: "g1f3", score: 0 });
+const defaultScore = () => Promise.resolve(0);
 
 function defaultReplies(test: TestTrainer): Promise<Reply[]> {
   const uci = DEFAULT_REPLIES[test.explorerCalls.length - 1];
-  return Promise.resolve([{ uci, san: SAN[uci], games: 1 }]);
+  return Promise.resolve([{ uci, san: SAN[uci], games: 1, percent: 1 }]);
 }
 
 export function givenATrainer(): TestTrainer {
-  return build((_test, move) => defaultVerdict(move), defaultReplies);
+  return build(defaultAnalysis, defaultScore, defaultReplies);
+}
+
+export function givenATrainerThatReplies(moves: string[]): TestTrainer {
+  return build(defaultAnalysis, defaultScore, (test) => Promise.resolve([{ uci: moves[test.explorerCalls.length - 1], san: "", games: 1, percent: 1 }]));
 }
 
 export function givenATrainerThatHoldsItsAnswers(): TestTrainer {
   return build(
-    (test) => new Promise<Verdict>((resolve) => { test.answerEngine = resolve; }),
+    (test) => new Promise<Analysis>((resolve) => { test.answerAnalysis = resolve; }),
+    (test) => new Promise<number>((resolve) => { test.answerScore = resolve; }),
     (test) => new Promise<Reply[]>((resolve) => { test.answerExplorer = resolve; }),
   );
 }
 
 export function givenATrainerWithAFailingEngine(message: string): TestTrainer {
-  return build(() => Promise.reject(new Error(message)), defaultReplies);
+  const fail = () => Promise.reject(new Error(message));
+  return build(fail, fail, defaultReplies);
+}
+
+export function givenATrainerWithAFailingScore(message: string): TestTrainer {
+  return build(defaultAnalysis, () => Promise.reject(new Error(message)), defaultReplies);
+}
+
+export function givenATrainerWithAFailingView(message: string): TestTrainer {
+  return build(defaultAnalysis, defaultScore, defaultReplies, new Error(message));
 }
 
 export function givenATrainerWithAFailingExplorer(message: string): TestTrainer {
-  return build((_test, move) => defaultVerdict(move), () => Promise.reject(new Error(message)));
+  return build(defaultAnalysis, defaultScore, () => Promise.reject(new Error(message)));
 }
 
-export function whenYouStart(test: TestTrainer, rating: number) {
+export async function whenYouStart(test: TestTrainer, rating: number, color: Color = "white", moves = 5) {
   try {
-    test.trainer.start(rating);
+    await test.trainer.start(rating, color, moves);
   } catch (error) {
     test.error = error;
   }
+}
+
+export function whenYouStartALineWithoutWaiting(test: TestTrainer, rating: number) {
+  void test.trainer.start(rating, "white", 5);
 }
 
 export async function whenYouPlay(test: TestTrainer, move: string) {
@@ -87,8 +114,13 @@ export function whenYouStartToPlay(test: TestTrainer, move: string) {
   void test.trainer.yourMove(move);
 }
 
-export async function whenTheEngineAnswers(test: TestTrainer, verdict: Verdict) {
-  test.answerEngine?.(verdict);
+export async function whenTheEngineAnalyses(test: TestTrainer, analysis: Analysis) {
+  test.answerAnalysis?.(analysis);
+  await new Promise((resolve) => setTimeout(resolve));
+}
+
+export async function whenTheEngineScores(test: TestTrainer, score: number) {
+  test.answerScore?.(score);
   await new Promise((resolve) => setTimeout(resolve));
 }
 
@@ -105,12 +137,16 @@ export function fenAfter(moves: string[]): string {
   return chess.fen();
 }
 
-export function thenTheEngineWasNotAsked(test: TestTrainer) {
-  expect(test.engineCalls).toEqual([]);
+export function thenTheEngineExamined(test: TestTrainer, fens: string[]) {
+  expect(test.analyseCalls).toEqual(fens);
 }
 
-export function thenTheEngineWasAskedWith(test: TestTrainer, fen: string, move: string) {
-  expect(test.engineCalls).toEqual([{ fen, move }]);
+export function thenTheScoreWasAskedWith(test: TestTrainer, fen: string, move: string) {
+  expect(test.scoreCalls).toEqual([{ fen, move }]);
+}
+
+export function thenTheScoreWasNotAsked(test: TestTrainer) {
+  expect(test.scoreCalls).toEqual([]);
 }
 
 export function thenTheExplorerWasAskedWith(test: TestTrainer, fen: string, rating: number) {
@@ -121,8 +157,9 @@ export function thenTheExplorerWasAskedTimes(test: TestTrainer, times: number) {
   expect(test.explorerCalls).toHaveLength(times);
 }
 
-export function thenTheLineIs(test: TestTrainer, expected: Partial<LineView>) {
-  expect(test.bus.ask(new CurrentLine())).toMatchObject(expected);
+export function thenTheLineIs(test: TestTrainer, expected: Partial<Omit<LineView, "moves">> & { moves?: string[] }) {
+  const line = test.bus.ask(new CurrentLine());
+  expect({ ...line, moves: line.moves.map(({ san }) => san) }).toMatchObject(expected);
 }
 
 export function thenTheViewWasShown(test: TestTrainer, times: number) {

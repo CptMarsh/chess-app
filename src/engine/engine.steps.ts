@@ -1,9 +1,14 @@
 import { expect } from "vitest";
-import type { Verdict } from "../line/messages.ts";
-import { StockfishEngine } from "./engine.ts";
+import { type Analysis, StockfishEngine } from "./engine.ts";
 
 type Answers = { search: string[]; searchmoves?: string[] };
-type TestEngine = { engine: StockfishEngine; commands: string[]; verdict?: Verdict; error?: unknown };
+type TestEngine = {
+  engine: StockfishEngine;
+  commands: string[];
+  analysis?: Analysis;
+  score?: number;
+  error?: unknown;
+};
 
 class FakeWorker extends EventTarget {
   readonly #commands: string[];
@@ -42,25 +47,34 @@ export function givenAnEngineWhoseWorkerFails(): TestEngine {
   return { engine: new StockfishEngine(new FakeWorker(commands, () => [new Event("error")])), commands };
 }
 
-export async function whenYouAskForAJudgement(test: TestEngine, fen: string, move: string) {
+export async function whenYouAskForAnAnalysis(test: TestEngine, fen: string) {
   try {
-    test.verdict = await test.engine.judge(fen, move);
+    test.analysis = await test.engine.analyse(fen);
   } catch (error) {
     test.error = error;
   }
 }
 
-export function thenTheVerdictIs(test: TestEngine, verdict: Verdict) {
+export async function whenYouAskForTheScoreOf(test: TestEngine, fen: string, move: string) {
+  try {
+    test.score = await test.engine.score(fen, move);
+  } catch (error) {
+    test.error = error;
+  }
+}
+
+export function thenTheAnalysisIs(test: TestEngine, analysis: Analysis) {
   expect(test.error).toBeUndefined();
-  expect(test.verdict).toEqual(verdict);
+  expect(test.analysis).toEqual(analysis);
+}
+
+export function thenTheScoreIs(test: TestEngine, score: number) {
+  expect(test.error).toBeUndefined();
+  expect(test.score).toEqual(score);
 }
 
 export function thenTheCommandsWere(test: TestEngine, commands: string[]) {
   expect(test.commands).toEqual(commands);
-}
-
-export function thenTheCommandsEndWith(test: TestEngine, commands: string[]) {
-  expect(test.commands.slice(-commands.length)).toEqual(commands);
 }
 
 export function thenTheErrorIs(test: TestEngine, message: string) {

@@ -21,10 +21,13 @@ export class AppWorld extends World {
     const movesBefore = (await this.page.textContent("#moves")) ?? "";
     const board = (await this.page.locator("cg-board").boundingBox())!;
     const size = board.width / 8;
+    const black = await this.page.locator("#board.orientation-black").count() > 0;
     for (const square of [move.slice(0, 2), move.slice(2, 4)]) {
       const file = square.charCodeAt(0) - "a".charCodeAt(0);
       const rank = Number(square[1]);
-      await this.page.mouse.click(board.x + (file + 0.5) * size, board.y + (8.5 - rank) * size);
+      const x = black ? 7 - file + 0.5 : file + 0.5;
+      const y = black ? rank - 0.5 : 8.5 - rank;
+      await this.page.mouse.click(board.x + x * size, board.y + y * size);
     }
     await this.waitForText("#moves", "isNot", movesBefore);
   }

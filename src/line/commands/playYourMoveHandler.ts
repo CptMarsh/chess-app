@@ -13,9 +13,11 @@ export class PlayYourMoveHandler implements CommandHandler<PlayYourMove> {
   handle(command: PlayYourMove) {
     const { move } = command;
     this.#state.chess.move(uciMove(move));
+    this.#state.percents.push(null);
     this.#state.yourMoves += 1;
     this.#state.message = "";
     this.#state.arrow = null;
+    this.#state.eval = null;
     this.#state.status = this.#state.yourMoves === 1 ? "waitingForReply" : "checkingYourMove";
   }
 }

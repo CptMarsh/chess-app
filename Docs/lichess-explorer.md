@@ -12,7 +12,7 @@ The explorer is an adapter. It does not use the bus. It does not know the rules 
 
 `new LichessExplorer(token, fetchAnswer?)` gets the Lichess token. The optional second argument replaces `fetch`. Tests use it.
 
-`replies(fen, rating)` gives a promise of a list of `Reply` objects (`uci`, `san` and `games`). It sends a GET request to `https://explorer.lichess.ovh/lichess` with these query parameters:
+`replies(fen, rating)` gives a promise of a list of `Reply` objects (`uci`, `san`, `games` and `percent`). It sends a GET request to `https://explorer.lichess.ovh/lichess` with these query parameters:
 
 | Parameter | Value |
 |---|---|
@@ -26,7 +26,9 @@ The explorer is an adapter. It does not use the bus. It does not know the rules 
 
 The request has the header `Authorization: Bearer <token>`.
 
-`games` is `white + draws + black` from the answer of the explorer.
+`games` is `white + draws + black` of the move in the answer of the explorer.
+
+`percent` is `Math.round(games * 100 / total)`. `total` is `white + draws + black` of the top-level fields of the answer. These fields hold all games of the position. The `percent` values of the replies do not always add up to 100.
 
 The explorer gives castling as king to rook, for example `e8h8`. `chess.js` refuses this form. Thus the adapter changes the `uci` of a castling reply to the standard form: `e8h8` becomes `e8g8`, and `e8a8` becomes `e8c8`. The adapter looks at `san`: only a `san` that starts with `O-O` is castling. A rook or queen move from e8 to h8 does not change.
 

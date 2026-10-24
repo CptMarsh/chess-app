@@ -2,11 +2,12 @@ import { test } from "vitest";
 import {
   givenAnEngineThatAnswers,
   givenAnEngineWhoseWorkerFails,
-  thenTheCommandsEndWith,
   thenTheCommandsWere,
+  thenTheAnalysisIs,
   thenTheErrorIs,
-  thenTheVerdictIs,
-  whenYouAskForAJudgement,
+  thenTheScoreIs,
+  whenYouAskForAnAnalysis,
+  whenYouAskForTheScoreOf,
 } from "./engine.steps.ts";
 
 const FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -17,31 +18,46 @@ const SEARCH = [
   "bestmove e2e4 ponder e7e5",
 ];
 
-test("The best move needs one search", async () => {
+test("An analysis needs one search", async () => {
   const engine = givenAnEngineThatAnswers({ search: SEARCH });
-  await whenYouAskForAJudgement(engine, FEN, "e2e4");
-  thenTheVerdictIs(engine, { bestMove: "e2e4", bestScore: 34, yourScore: 34 });
+  await whenYouAskForAnAnalysis(engine, FEN);
+  thenTheAnalysisIs(engine, { bestMove: "e2e4", score: 34 });
   thenTheCommandsWere(engine, ["uci", "ucinewgame", "isready", `position fen ${FEN}`, "go depth 16"]);
 });
 
-test("A different move gets a second search with searchmoves", async () => {
+test("A score searches only your move", async () => {
   const engine = givenAnEngineThatAnswers({
     search: SEARCH,
     searchmoves: ["info depth 16 score cp -40 upperbound pv a2a3", "bestmove a2a3"],
   });
-  await whenYouAskForAJudgement(engine, FEN, "a2a3");
-  thenTheVerdictIs(engine, { bestMove: "e2e4", bestScore: 34, yourScore: -40 });
-  thenTheCommandsEndWith(engine, [`position fen ${FEN}`, "go depth 16 searchmoves a2a3"]);
+  await whenYouAskForTheScoreOf(engine, FEN, "a2a3");
+  thenTheScoreIs(engine, -40);
+  thenTheCommandsWere(engine, ["uci", `position fen ${FEN}`, "go depth 16 searchmoves a2a3"]);
 });
 
-test.each([["score mate 3", 10000], ["score mate -2", -10000]])("%s becomes %i", async (score, value) => {
+test.each([["score mate 3", 10000], ["score mate -2", -10000]])("An analysis with %s becomes %i", async (score, value) => {
   const engine = givenAnEngineThatAnswers({ search: [`info depth 16 ${score} pv e2e4`, "bestmove e2e4"] });
-  await whenYouAskForAJudgement(engine, FEN, "e2e4");
-  thenTheVerdictIs(engine, { bestMove: "e2e4", bestScore: value, yourScore: value });
+  await whenYouAskForAnAnalysis(engine, FEN);
+  thenTheAnalysisIs(engine, { bestMove: "e2e4", score: value });
 });
 
-test("A worker error gives the engine message", async () => {
+test.each([["score mate 3", 10000], ["score mate -2", -10000]])("A score with %s becomes %i", async (score, value) => {
+  const engine = givenAnEngineThatAnswers({
+    search: SEARCH,
+    searchmoves: [`info depth 16 ${score} pv a2a3`, "bestmove a2a3"],
+  });
+  await whenYouAskForTheScoreOf(engine, FEN, "a2a3");
+  thenTheScoreIs(engine, value);
+});
+
+test("A worker error stops an analysis", async () => {
   const engine = givenAnEngineWhoseWorkerFails();
-  await whenYouAskForAJudgement(engine, FEN, "e2e4");
+  await whenYouAskForAnAnalysis(engine, FEN);
+  thenTheErrorIs(engine, "The engine did not start. Reload the page.");
+});
+
+test("A worker error stops a score", async () => {
+  const engine = givenAnEngineWhoseWorkerFails();
+  await whenYouAskForTheScoreOf(engine, FEN, "a2a3");
   thenTheErrorIs(engine, "The engine did not start. Reload the page.");
 });

@@ -14,10 +14,18 @@ export class StartLineHandler implements CommandHandler<StartLine> {
     if (!Number.isInteger(command.rating) || command.rating < 0) {
       throw new Error("The rating must be a whole number, 0 or more.");
     }
+    if (!Number.isInteger(command.moves) || command.moves < 2) {
+      throw new Error("The number of moves must be a whole number, 2 or more.");
+    }
     this.#state.chess = new Chess();
-    this.#state.status = "yourMove";
+    this.#state.lineLength = command.moves;
+    this.#state.color = command.color;
+    this.#state.status = command.color === "white" ? "checkingPosition" : "waitingForReply";
     this.#state.message = "";
     this.#state.arrow = null;
+    this.#state.eval = null;
     this.#state.yourMoves = 0;
+    this.#state.percents = [];
+    this.#state.accuracy = { correct: 0, checked: 0 };
   }
 }

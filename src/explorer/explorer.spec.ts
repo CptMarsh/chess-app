@@ -34,16 +34,25 @@ test("The request asks Lichess for the 5 most common moves of your band", async 
 });
 
 test("Each reply gets the total of its games", async () => {
-  const explorer = givenAnExplorerThatAnswers(200, { moves: [
+  const explorer = givenAnExplorerThatAnswers(200, { white: 100, draws: 20, black: 80, moves: [
     { uci: "e7e5", san: "e5", white: 10, draws: 5, black: 15 },
     { uci: "c7c5", san: "c5", white: 3, draws: 1, black: 2 },
   ] });
   await whenYouAskForReplies(explorer, FEN, 1450);
-  thenTheRepliesAre(explorer, [{ uci: "e7e5", san: "e5", games: 30 }, { uci: "c7c5", san: "c5", games: 6 }]);
+  thenTheRepliesAre(explorer, [{ uci: "e7e5", san: "e5", games: 30, percent: 15 }, { uci: "c7c5", san: "c5", games: 6, percent: 3 }]);
+});
+
+test("Each reply gets its % of all games in the position", async () => {
+  const explorer = givenAnExplorerThatAnswers(200, { white: 100, draws: 20, black: 80, moves: [
+    { uci: "e7e5", san: "e5", white: 40, draws: 4, black: 40 },
+    { uci: "c7c5", san: "c5", white: 1, draws: 1, black: 1 },
+  ] });
+  await whenYouAskForReplies(explorer, FEN, 1450);
+  thenTheRepliesAre(explorer, [{ uci: "e7e5", san: "e5", games: 84, percent: 42 }, { uci: "c7c5", san: "c5", games: 3, percent: 2 }]);
 });
 
 test("A castling reply comes as standard UCI", async () => {
-  const explorer = givenAnExplorerThatAnswers(200, { moves: [
+  const explorer = givenAnExplorerThatAnswers(200, { white: 30, draws: 0, black: 0, moves: [
     { uci: "e8h8", san: "O-O", white: 1, draws: 1, black: 1 },
     { uci: "e8a8", san: "O-O-O", white: 1, draws: 1, black: 1 },
     { uci: "e1h1", san: "O-O+", white: 1, draws: 1, black: 1 },
@@ -52,11 +61,11 @@ test("A castling reply comes as standard UCI", async () => {
   ] });
   await whenYouAskForReplies(explorer, FEN, 1450);
   thenTheRepliesAre(explorer, [
-    { uci: "e8g8", san: "O-O", games: 3 },
-    { uci: "e8c8", san: "O-O-O", games: 3 },
-    { uci: "e1g1", san: "O-O+", games: 3 },
-    { uci: "e1c1", san: "O-O-O#", games: 3 },
-    { uci: "e8h8", san: "Rh8", games: 3 },
+    { uci: "e8g8", san: "O-O", games: 3, percent: 10 },
+    { uci: "e8c8", san: "O-O-O", games: 3, percent: 10 },
+    { uci: "e1g1", san: "O-O+", games: 3, percent: 10 },
+    { uci: "e1c1", san: "O-O-O#", games: 3, percent: 10 },
+    { uci: "e8h8", san: "Rh8", games: 3, percent: 10 },
   ]);
 });
 

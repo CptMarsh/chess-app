@@ -48,8 +48,12 @@ export class LichessExplorer {
     if (!answer.ok) {
       throw new Error(`Lichess did not answer (status ${answer.status}).`);
     }
-    const { moves } = (await answer.json()) as { moves: Move[] };
-    return moves.map(({ uci, san, white, draws, black }) => ({ uci: standardUci(uci, san), san, games: white + draws + black }));
+    const position = (await answer.json()) as { white: number; draws: number; black: number; moves: Move[] };
+    const total = position.white + position.draws + position.black;
+    return position.moves.map(({ uci, san, white, draws, black }) => {
+      const games = white + draws + black;
+      return { uci: standardUci(uci, san), san, games, percent: Math.round((games * 100) / total) };
+    });
   }
 }
 
