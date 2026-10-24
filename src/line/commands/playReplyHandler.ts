@@ -25,7 +25,7 @@ export class PlayReplyHandler implements CommandHandler<PlayReply> {
     const { uci, percent } = picked;
     this.#state.chess.move(uciMove(uci));
     this.#state.percents.push(percent);
-    this.#state.eval = null;
+    this.#state.evals.push(null);
     this.#state.status = "checkingPosition";
   }
 }

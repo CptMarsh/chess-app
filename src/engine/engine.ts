@@ -1,10 +1,12 @@
+import type { Candidate } from "../line/messages.ts";
+
 export type EngineWorker = Pick<Worker, "postMessage" | "addEventListener">;
 
 const DEPTH = 16;
+const LINES = 3;
 const MATE = 10000;
 const NOT_STARTED = "The engine did not start. Reload the page.";
 
-export type Analysis = { bestMove: string; score: number };
 type Waiting = { onLine: (line: string) => void; onFailure: () => void };
 
 export class StockfishEngine {
@@ -24,28 +26,30 @@ export class StockfishEngine {
     this.#ready.catch(() => {});
   }
 
-  async analyse(fen: string): Promise<Analysis> {
+  async analyse(fen: string): Promise<Candidate[]> {
     await this.#ready;
+    this.#worker.postMessage(`setoption name MultiPV value ${LINES}`);
     this.#worker.postMessage("ucinewgame");
     await this.#ask("isready", "readyok");
-    return this.#search(fen, `go depth ${DEPTH}`);
+    const candidates = new Map<number, Candidate>();
+    for (const line of await this.#search(fen, `go depth ${DEPTH}`)) {
+      const found = / multipv (\d+) .* pv (\S+)/.exec(line);
+      const score = scoreOf(line);
+      if (found && score !== undefined) candidates.set(Number(found[1]), { move: found[2], score });
+    }
+    return [...candidates].sort(([a], [b]) => a - b).map(([, candidate]) => candidate);
   }
 
   async score(fen: string, move: string): Promise<number> {
     await this.#ready;
-    const yours = await this.#search(fen, `go depth ${DEPTH} searchmoves ${move}`);
-    return yours.score;
+    let score = 0;
+    for (const line of await this.#search(fen, `go depth ${DEPTH} searchmoves ${move}`)) score = scoreOf(line) ?? score;
+    return score;
   }
 
-  async #search(fen: string, go: string): Promise<Analysis> {
+  #search(fen: string, go: string): Promise<string[]> {
     this.#worker.postMessage(`position fen ${fen}`);
-    const lines = await this.#ask(go, "bestmove");
-    let score = 0;
-    for (const line of lines) {
-      const found = / score (cp|mate) (-?\d+)/.exec(line);
-      if (found) score = found[1] === "cp" ? Number(found[2]) : Number(found[2]) > 0 ? MATE : -MATE;
-    }
-    return { bestMove: lines[lines.length - 1].split(" ")[1], score };
+    return this.#ask(go, "bestmove");
   }
 
   #ask(command: string, last: string): Promise<string[]> {
@@ -71,4 +75,10 @@ export class StockfishEngine {
       this.#worker.postMessage(command);
     });
   }
+}
+
+function scoreOf(line: string): number | undefined {
+  const found = / score (cp|mate) (-?\d+)/.exec(line);
+  if (!found) return undefined;
+  return found[1] === "cp" ? Number(found[2]) : Number(found[2]) > 0 ? MATE : -MATE;
 }

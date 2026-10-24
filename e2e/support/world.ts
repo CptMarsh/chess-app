@@ -8,6 +8,19 @@ let server: ViteDevServer;
 let browser: Browser;
 let appUrl: string;
 
+// Runs in the page. It makes the text of the move list, for example "1. e4 e5 (42%) 2. Nf3".
+function shownMoves(): string {
+  return [...document.querySelectorAll("#moveList .row")]
+    .flatMap((row) => [
+      row.querySelector(".number")?.textContent ?? "",
+      ...[...row.querySelectorAll(".move")].map((move) => {
+        const percent = move.querySelector(".percent")?.textContent ?? "";
+        return `${move.querySelector(".san")?.textContent ?? ""}${percent === "" ? "" : ` (${percent})`}`;
+      }),
+    ])
+    .join(" ");
+}
+
 export class AppWorld extends World {
   context!: BrowserContext;
   page!: Page;
@@ -17,8 +30,9 @@ export class AppWorld extends World {
   }
 
   async play(move: string) {
-    await this.waitForText("#status", "is", "Status: your move");
-    const movesBefore = (await this.page.textContent("#moves")) ?? "";
+    await this.waitForText("#status", "isOneOf", ["Status: your move", "Status: try again"]);
+    const movesBefore = (await this.page.textContent("#moveList")) ?? "";
+    const statusBefore = (await this.page.textContent("#status")) ?? "";
     const board = (await this.page.locator("cg-board").boundingBox())!;
     const size = board.width / 8;
     const black = await this.page.locator("#board.orientation-black").count() > 0;
@@ -29,16 +43,50 @@ export class AppWorld extends World {
       const y = black ? rank - 0.5 : 8.5 - rank;
       await this.page.mouse.click(board.x + x * size, board.y + y * size);
     }
-    await this.waitForText("#moves", "isNot", movesBefore);
+    await this.page.waitForFunction(
+      (before) => document.querySelector("#moveList")?.textContent !== before.moves || document.querySelector("#status")?.textContent !== before.status,
+      { moves: movesBefore, status: statusBefore },
+      { timeout: WAIT },
+    );
   }
 
-  async waitForText(selector: string, match: "is" | "isNot" | "startsWith", text: string) {
+  async waitForPiece(piece: string, square: string) {
+    const black = await this.page.locator("#board.orientation-black").count() > 0;
+    const file = square.charCodeAt(0) - "a".charCodeAt(0);
+    const rank = Number(square[1]);
+    const wanted = { classes: piece.split(" "), column: black ? 7 - file : file, row: black ? rank - 1 : 8 - rank };
+    try {
+      await this.page.waitForFunction(
+        ({ classes, column, row }) => {
+          const size = document.querySelector("cg-board")!.getBoundingClientRect().width / 8;
+          return [...document.querySelectorAll("cg-board piece")].some((element) => {
+            const found = /translate\((-?[\d.]+)px, *(-?[\d.]+)px\)/.exec((element as HTMLElement).style.transform);
+            return classes.every((name) => element.classList.contains(name)) && !element.classList.contains("ghost") &&
+              found !== null && Math.round(Number(found[1]) / size) === column && Math.round(Number(found[2]) / size) === row;
+          });
+        },
+        wanted,
+        { timeout: WAIT },
+      );
+    } catch {
+      throw new Error(`The board has no ${piece} on ${square}.`);
+    }
+  }
+
+  async waitForMoves(text: string) {
+    try {
+      await this.page.waitForFunction(`(${shownMoves})() === ${JSON.stringify(text)}`, undefined, { timeout: WAIT });
+    } catch {
+      throw new Error(`#moveList shows ${JSON.stringify(await this.page.evaluate(shownMoves))}. Wanted: "${text}".`);
+    }
+  }
+
+  async waitForText(selector: string, match: "is" | "isOneOf", text: string | string[]) {
     try {
       await this.page.waitForFunction(
         (wanted) => {
           const shown = document.querySelector(wanted.selector)?.textContent ?? "";
-          const matches = { is: shown === wanted.text, isNot: shown !== wanted.text, startsWith: shown.startsWith(wanted.text) };
-          return matches[wanted.match];
+          return wanted.match === "is" ? shown === wanted.text : wanted.text.includes(shown);
         },
         { selector, match, text },
         { timeout: WAIT },

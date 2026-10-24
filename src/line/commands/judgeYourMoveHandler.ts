@@ -1,3 +1,4 @@
+import { Chess } from "chess.js";
 import type { CommandHandler } from "../../bus/bus.ts";
 import type { LineState } from "../lineState.ts";
 import type { JudgeYourMove } from "../messages.ts";
@@ -15,42 +16,36 @@ export class JudgeYourMoveHandler implements CommandHandler<JudgeYourMove> {
 
   handle(command: JudgeYourMove) {
     const state = this.#state;
-    const { bestMove, bestScore, yourScore } = command.verdict;
+    const { candidates, yourScore } = command.verdict;
+    const { move: bestMove, score: bestScore } = candidates[0];
     const played = state.chess.history({ verbose: true }).at(-1)!;
     const loss = bestScore - yourScore;
-    let best;
-    if (played.lan !== bestMove) {
+    if (played.lan !== bestMove && loss > ALLOWED_LOSS) {
+      const acceptable = candidates.filter((candidate) => bestScore - candidate.score <= ALLOWED_LOSS);
+      const sans = acceptable.map((candidate) => new Chess(played.before).move(uciMove(candidate.move)).san);
       state.chess.undo();
-      best = state.chess.move(uciMove(bestMove));
+      state.percents.pop();
+      state.evals.pop();
+      state.yourMoves -= 1;
+      state.acceptable = acceptable;
+      state.arrows = acceptable.map(({ move }) => ({ from: move.slice(0, 2), to: move.slice(2, 4) }));
+      state.eval = state.toWhiteSide(bestScore);
+      state.accuracy.checked += 1;
+      const play = `Play ${sans.length === 1 ? sans[0] : `${sans.slice(0, -1).join(", ")} or ${sans.at(-1)}`}.`;
+      if (yourScore === -MATE) {
+        state.message = `${played.san} allows mate. ${play}`;
+      } else if (bestScore === MATE) {
+        state.message = `${played.san} misses a mate. ${play}`;
+      } else {
+        state.message = `${played.san} loses ${(loss / 100).toFixed(1)} pawns. ${play}`;
+      }
+      state.status = "tryAgain";
+      return;
     }
+    state.message = played.lan === bestMove ? "Best move." : `Good. The best move was ${new Chess(played.before).move(uciMove(bestMove)).san}.`;
     state.eval = state.toWhiteSide(yourScore);
     state.accuracy.checked += 1;
-    if (played.lan === bestMove || loss <= ALLOWED_LOSS) state.accuracy.correct += 1;
-    if (best === undefined) {
-      state.message = "Best move.";
-    } else {
-      if (loss <= ALLOWED_LOSS) {
-        state.chess.undo();
-        state.chess.move(played.san);
-        state.message = `Good. The best move was ${best.san}.`;
-      } else {
-        state.eval = state.toWhiteSide(bestScore);
-        state.arrow = { from: best.from, to: best.to };
-        if (yourScore === -MATE) {
-          state.message = `${played.san} allows mate. The best move is ${best.san}.`;
-        } else if (bestScore === MATE) {
-          state.message = `${played.san} misses a mate. The best move is ${best.san}.`;
-        } else {
-          state.message = `${played.san} loses ${(loss / 100).toFixed(1)} pawns. The best move is ${best.san}.`;
-        }
-      }
-    }
-    if (state.chess.isCheckmate()) {
-      state.end("Checkmate.");
-    } else if (state.yourMoves === state.lineLength) {
-      state.end("");
-    } else {
-      state.status = "waitingForReply";
-    }
+    state.accuracy.correct += 1;
+    state.afterYourMove();
   }
 }

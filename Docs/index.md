@@ -14,11 +14,12 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Lichess explorer](lichess-explorer.md): the adapter that gets the most common replies of a position from Lichess.
 - [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker.
 - [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
-- [Trainer screen](trainer-screen.md): the screen that shows the rating, color and moves fields, the board, the eval bar, the moves, the message, the eval, the accuracy and the status.
+- [Trainer screen](trainer-screen.md): the screen that shows the rating, color and moves fields, the board, the eval bar with the eval number, the move list, the message, the accuracy and the status. It is dark.
 
 ## Specs
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer.
 - [Eval, accuracy, line length and Black](superpowers/specs/2026-10-24-eval-accuracy-length-black-design.md): the % of each opponent move, the eval and the eval bar, your accuracy, the line length, and Black as your color.
+- [Try again, move list, eval number and dark mode](superpowers/specs/2026-10-24-try-again-move-list-dark-design.md): a maximum of 3 acceptable moves after a mistake, the move list at the side of the board with the arrow keys, the number on the eval bar, and dark mode.
 
 ## Process
 We use spec-driven development with a red-green-refactor loop. The unit specs are in `src/**/*.spec.ts` (Vitest). The e2e scenarios are in `e2e/features/` (Cucumber.js and Playwright).

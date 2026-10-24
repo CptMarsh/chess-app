@@ -18,7 +18,7 @@ The engine has 2 calls. Both give a promise. The scores are in centipawns from t
 
 | Call | Result |
 |---|---|
-| `analyse(fen)` | An `Analysis`: `{ bestMove, score }`. `bestMove` is in UCI notation. |
+| `analyse(fen)` | The candidates: `Candidate[]`, best first. A `Candidate` is `{ move, score }`. `move` is in UCI notation. There are a maximum of 3 candidates. A position with fewer than 3 legal moves gives fewer candidates. |
 | `score(fen, move)` | The score of `move` (UCI notation) in the position. |
 
 ## Commands
@@ -26,12 +26,12 @@ Both calls wait for `uciok`. Then they send these commands:
 
 | Call | UCI commands |
 |---|---|
-| `analyse(fen)` | `ucinewgame`, `isready` (wait for `readyok`), `position fen <fen>`, `go depth 16` |
+| `analyse(fen)` | `setoption name MultiPV value 3`, `ucinewgame`, `isready` (wait for `readyok`), `position fen <fen>`, `go depth 16` |
 | `score(fen, move)` | `position fen <fen>`, `go depth 16 searchmoves <move>` |
 
-The last `score` before `bestmove` gives the score. The `bestmove` gives `bestMove`.
+With MultiPV 3, Stockfish gives 3 lines. Each `info` line with a score has `multipv N` and `pv <move> ...`. `analyse` keeps the last of these lines for each `N`. The candidate of `N` is the first move after ` pv ` and the score of that line. The candidates are in the order of `N`.
 
-A line without ` score ` does not change the score.
+`score` gives the last score before `bestmove`. With `searchmoves` and one move, Stockfish gives only 1 line. A line without ` score ` does not change the score.
 
 | Score | Value |
 |---|---|

@@ -3,6 +3,9 @@ import {
   givenALineAfter,
   givenANewLine,
   givenNoLine,
+  thenTheEvalsAre,
+  thenTheFenAfterMoveIs,
+  thenTheLegalMovesAre,
   thenTheLegalMovesFrom,
   thenTheLineThrew,
   thenTheLineIs,
@@ -20,19 +23,19 @@ import {
 
 const E5 = { uci: "e7e5", san: "e5", games: 30, percent: 42 };
 const C5 = { uci: "c7c5", san: "c5", games: 10, percent: 14 };
-const verdict = (bestMove: string, bestScore: number, yourScore: number) => ({ bestMove, bestScore, yourScore });
+const verdict = (bestMove: string, bestScore: number, yourScore: number) => ({ candidates: [{ move: bestMove, score: bestScore }], yourScore });
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 test("Before the first line, the board is locked", () => {
   const line = givenNoLine();
-  thenTheLineIs(line, { fen: START, moves: [], status: "ended", color: "white", message: "", arrow: null, eval: null, accuracy: { correct: 0, checked: 0 } });
+  thenTheLineIs(line, { fen: START, moves: [], status: "ended", color: "white", message: "", arrows: [], eval: null, startEval: null, accuracy: { correct: 0, checked: 0 } });
   thenThereAreNoLegalMoves(line);
 });
 
 test("A new line starts at the start position", () => {
   const line = givenNoLine();
   whenYouStartALine(line, 1450);
-  thenTheLineIs(line, { fen: START, moves: [], status: "checkingPosition", message: "", arrow: null, eval: null });
+  thenTheLineIs(line, { fen: START, moves: [], status: "checkingPosition", message: "", arrows: [], eval: null });
   thenThereAreNoLegalMoves(line);
 });
 
@@ -79,6 +82,24 @@ test("A reply keeps its %, and your move has none", () => {
   thenTheMovesAre(line, [{ san: "e4", percent: null }, { san: "e5", percent: 42 }]);
 });
 
+test("Each move has the position after it", () => {
+  const line = givenALineAfter(["e2e4", "e7e5"]);
+  thenTheFenAfterMoveIs(line, 0, "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1");
+  thenTheFenAfterMoveIs(line, 1, "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
+});
+
+test("Each position keeps its eval", () => {
+  const line = givenNoLine();
+  whenYouStartALine(line, 1450);
+  whenTheEngineExamines(line, 25);
+  whenYouPlay(line, "e2e4");
+  whenTheReplyIsPickedFrom(line, [E5]);
+  whenTheEngineExamines(line, 30);
+  whenYouPlay(line, "g1f3");
+  whenTheEngineGives(line, verdict("g1f3", 35, 35));
+  thenTheEvalsAre(line, 25, [null, 30, 35]);
+});
+
 test("No replies ends the line", () => {
   const line = givenANewLine(1450);
   whenYouPlay(line, "e2e4");
@@ -105,56 +126,125 @@ test("The best move gets 'Best move.'", () => {
   const line = givenALineAfter(["e2e4", "e7e5"]);
   whenYouPlay(line, "g1f3");
   whenTheEngineGives(line, verdict("g1f3", 30, 30));
-  thenTheLineIs(line, { moves: ["e4", "e5", "Nf3"], status: "waitingForReply", message: "Best move.", arrow: null, eval: 30 });
+  thenTheLineIs(line, { moves: ["e4", "e5", "Nf3"], status: "waitingForReply", message: "Best move.", arrows: [], eval: 30 });
 });
 
 test("A move that loses 20 centipawns or less stays", () => {
   const line = givenALineAfter(["e2e4", "e7e5"]);
   whenYouPlay(line, "b1c3");
   whenTheEngineGives(line, verdict("g1f3", 30, 10));
-  thenTheLineIs(line, { moves: ["e4", "e5", "Nc3"], message: "Good. The best move was Nf3.", arrow: null, eval: 10 });
+  thenTheLineIs(line, { moves: ["e4", "e5", "Nc3"], message: "Good. The best move was Nf3.", arrows: [], eval: 10 });
 });
 
-test("A move that loses more than 20 centipawns is replaced", () => {
+const candidates = (...pairs: [string, number][]) => pairs.map(([move, score]) => ({ move, score }));
+
+const playAMistakeAfterE5 = () => {
   const line = givenALineAfter(["e2e4", "e7e5"]);
   whenYouPlay(line, "f1a6");
-  whenTheEngineGives(line, verdict("g1f3", 30, -250));
+  whenTheEngineGives(line, { candidates: candidates(["g1f3", 30], ["b1c3", 20], ["f1c4", 5]), yourScore: -250 });
+  return line;
+};
+
+test("A mistake takes back your move and asks for an acceptable move", () => {
+  const line = playAMistakeAfterE5();
   thenTheLineIs(line, {
-    moves: ["e4", "e5", "Nf3"], status: "waitingForReply", eval: 30,
-    message: "Ba6 loses 2.8 pawns. The best move is Nf3.", arrow: { from: "g1", to: "f3" },
+    moves: ["e4", "e5"], status: "tryAgain", eval: 30, accuracy: { correct: 0, checked: 1 },
+    message: "Ba6 loses 2.8 pawns. Play Nf3 or Nc3.", arrows: [{ from: "g1", to: "f3" }, { from: "b1", to: "c3" }],
   });
+  thenTheLegalMovesAre(line, { g1: ["f3"], b1: ["c3"] });
+  thenTheMovesAre(line, [{ san: "e4", percent: null }, { san: "e5", percent: 1 }]);
+  thenTheEvalsAre(line, 0, [null, 30]);
 });
 
-test("When the best move replaces your move, each % stays at its move", () => {
+test.each([
+  [candidates(["g1f3", 30], ["b1c3", 0]), "Ba6 loses 2.8 pawns. Play Nf3."],
+  [candidates(["g1f3", 30], ["b1c3", 20], ["f1c4", 10]), "Ba6 loses 2.8 pawns. Play Nf3, Nc3 or Bc4."],
+])("The message names each acceptable move: %j", (list, message) => {
   const line = givenALineAfter(["e2e4", "e7e5"]);
   whenYouPlay(line, "f1a6");
-  whenTheEngineGives(line, verdict("g1f3", 30, -250));
-  thenTheMovesAre(line, [{ san: "e4", percent: null }, { san: "e5", percent: 1 }, { san: "Nf3", percent: null }]);
+  whenTheEngineGives(line, { candidates: list, yourScore: -250 });
+  thenTheLineIs(line, { status: "tryAgain", message });
 });
 
-test("The message and the arrow stay after the reply", () => {
-  const line = givenALineAfter(["e2e4", "e7e5"]);
-  whenYouPlay(line, "f1a6");
-  whenTheEngineGives(line, verdict("g1f3", 30, -250));
-  whenTheReplyIsPickedFrom(line, [{ uci: "b8c6", san: "Nc6", games: 1, percent: 1 }]);
-  thenTheLineIs(line, {
-    status: "checkingPosition", eval: null,
-    message: "Ba6 loses 2.8 pawns. The best move is Nf3.", arrow: { from: "g1", to: "f3" },
-  });
-});
-
-test("A move that allows mate is replaced", () => {
+test("A move that allows mate asks for an acceptable move", () => {
   const line = givenALineAfter(["f2f3", "e7e5"]);
   whenYouPlay(line, "g2g4");
-  whenTheEngineGives(line, verdict("e2e4", -50, -10000));
-  thenTheLineIs(line, { moves: ["f3", "e5", "e4"], message: "g4 allows mate. The best move is e4.", arrow: { from: "e2", to: "e4" } });
+  whenTheEngineGives(line, { candidates: candidates(["e2e4", -50]), yourScore: -10000 });
+  thenTheLineIs(line, { moves: ["f3", "e5"], status: "tryAgain", message: "g4 allows mate. Play e4." });
 });
 
-test("A move that misses a mate is replaced, and the mate ends the line", () => {
+test("A move that misses a mate asks for the mate, and the mate ends the line", () => {
   const line = givenALineAfter(["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6"]);
   whenYouPlay(line, "d2d3");
-  whenTheEngineGives(line, verdict("h5f7", 10000, 300));
-  thenTheLineIs(line, { status: "ended", message: "d3 misses a mate. The best move is Qxf7#. Checkmate.", arrow: { from: "h5", to: "f7" } });
+  whenTheEngineGives(line, { candidates: candidates(["h5f7", 10000]), yourScore: 300 });
+  thenTheLineIs(line, { status: "tryAgain", message: "d3 misses a mate. Play Qxf7#." });
+  whenYouPlay(line, "h5f7");
+  thenTheLineIs(line, { status: "ended", message: "Checkmate." });
+});
+
+test("A good move that is the 2nd candidate stays", () => {
+  const line = givenALineAfter(["e2e4", "e7e5"]);
+  whenYouPlay(line, "b1c3");
+  whenTheEngineGives(line, { candidates: candidates(["g1f3", 30], ["b1c3", 20]), yourScore: 20 });
+  thenTheLineIs(line, { moves: ["e4", "e5", "Nc3"], status: "waitingForReply", message: "Good. The best move was Nf3.", arrows: [] });
+});
+
+test("The message stays after the reply", () => {
+  const line = givenALineAfter(["e2e4", "e7e5"]);
+  whenYouPlay(line, "b1c3");
+  whenTheEngineGives(line, verdict("g1f3", 30, 10));
+  whenTheReplyIsPickedFrom(line, [{ uci: "b8c6", san: "Nc6", games: 1, percent: 1 }]);
+  thenTheLineIs(line, { status: "checkingPosition", message: "Good. The best move was Nf3." });
+});
+
+test("Your second move gets the eval of its candidate and no check", () => {
+  const line = playAMistakeAfterE5();
+  whenYouPlay(line, "b1c3");
+  thenTheLineIs(line, {
+    moves: ["e4", "e5", "Nc3"], status: "waitingForReply", message: "", arrows: [], eval: 20, accuracy: { correct: 0, checked: 1 },
+  });
+  thenTheMovesAre(line, [{ san: "e4", percent: null }, { san: "e5", percent: 1 }, { san: "Nc3", percent: null }]);
+  thenTheEvalsAre(line, 0, [null, 30, 20]);
+});
+
+test("A mistake on your last move, then an acceptable move, ends the line", () => {
+  const line = givenNoLine();
+  whenYouStartALine(line, 1450, "white", 2);
+  whenTheEngineExamines(line, 0);
+  whenYouPlay(line, "e2e4");
+  whenTheReplyIsPickedFrom(line, [E5]);
+  whenTheEngineExamines(line, 0);
+  whenYouPlay(line, "f1a6");
+  whenTheEngineGives(line, { candidates: candidates(["g1f3", 30]), yourScore: -250 });
+  thenTheLineIs(line, { status: "tryAgain" });
+  whenYouPlay(line, "g1f3");
+  thenTheLineIs(line, { status: "ended", message: "" });
+});
+
+test("A promotion can be an acceptable move", () => {
+  const line = givenALineAfter(["e2e4", "d7d5", "e4d5", "c7c6", "d5c6", "g8f6", "c6b7", "b8c6"]);
+  whenYouPlay(line, "a2a3");
+  whenTheEngineGives(line, { candidates: candidates(["b7a8q", 900]), yourScore: 0 });
+  thenTheLineIs(line, { status: "tryAgain", message: "a3 loses 9.0 pawns. Play bxa8=Q.", arrows: [{ from: "b7", to: "a8" }] });
+  thenTheLegalMovesAre(line, { b7: ["a8"] });
+  whenYouPlay(line, "b7a8q");
+  thenTheLineIs(line, { status: "ended", eval: 900 });
+});
+
+test("Your second move plays the piece of its acceptable promotion", () => {
+  const line = givenALineAfter(["e2e4", "d7d5", "e4d5", "c7c6", "d5c6", "g8f6", "c6b7", "b8c6"]);
+  whenYouPlay(line, "a2a3");
+  whenTheEngineGives(line, { candidates: candidates(["b7a8n", 900]), yourScore: 0 });
+  whenYouPlay(line, "b7a8q");
+  thenTheLineIs(line, { moves: ["e4", "d5", "exd5", "c6", "dxc6", "Nf6", "cxb7", "Nc6", "bxa8=N"], status: "ended", eval: 900 });
+});
+
+test("A new line clears the acceptable moves", () => {
+  const line = playAMistakeAfterE5();
+  whenYouStartALine(line, 1450);
+  whenTheEngineExamines(line, 0);
+  thenTheLineIs(line, { arrows: [], status: "yourMove" });
+  thenTheLegalMovesFrom(line, "e2", ["e3", "e4"]);
 });
 
 test("Castling is compared as e1g1", () => {
@@ -221,15 +311,29 @@ const playTheBlackSequence = () => {
 test("For Black, the eval is from the White side", () => {
   const line = playTheBlackSequence();
   thenTheLineIs(line, { eval: -40, status: "yourMove" });
+  thenTheEvalsAre(line, null, [-40]);
   thenTheLegalMovesFrom(line, "e7", ["e6", "e5"]);
   whenYouPlay(line, "e7e5");
   thenTheLineIs(line, { status: "waitingForReply" });
+  thenTheEvalsAre(line, null, [-40, null]);
   whenTheReplyIsPickedFrom(line, [{ uci: "g1f3", san: "Nf3", games: 1, percent: 1 }]);
   whenTheEngineExamines(line, -30);
   thenTheLineIs(line, { eval: 30 });
   whenYouPlay(line, "b8c6");
   whenTheEngineGives(line, verdict("b8c6", 25, 25));
   thenTheLineIs(line, { eval: -25, message: "Best move.", accuracy: { correct: 1, checked: 1 } });
+});
+
+test("For Black, the eval of the second move is from the White side", () => {
+  const line = playTheBlackSequence();
+  whenYouPlay(line, "e7e5");
+  whenTheReplyIsPickedFrom(line, [{ uci: "g1f3", san: "Nf3", games: 1, percent: 1 }]);
+  whenTheEngineExamines(line, -30);
+  whenYouPlay(line, "f8a3");
+  whenTheEngineGives(line, { candidates: candidates(["b8c6", 25], ["g8f6", 15]), yourScore: -300 });
+  thenTheLineIs(line, { eval: -25, status: "tryAgain" });
+  whenYouPlay(line, "g8f6");
+  thenTheLineIs(line, { eval: -15 });
 });
 
 test("For Black, no games for the start position ends the line", () => {
@@ -242,7 +346,8 @@ test("For Black, no games for the start position ends the line", () => {
 test("A new White line after a Black line starts clean", () => {
   const line = playTheBlackSequence();
   whenYouStartALine(line, 1450, "white");
-  thenTheLineIs(line, { color: "white", moves: [], status: "checkingPosition", message: "", arrow: null, eval: null, accuracy: { correct: 0, checked: 0 } });
+  thenTheLineIs(line, { color: "white", moves: [], status: "checkingPosition", message: "", arrows: [], eval: null, accuracy: { correct: 0, checked: 0 } });
+  thenTheEvalsAre(line, null, []);
 });
 
 test.each([1, 2.5, Number.NaN])("The number of moves %s is rejected", (moves) => {
@@ -287,10 +392,10 @@ test("As Black with 3 moves, the line ends after your third move", () => {
   thenTheLineIs(line, { status: "ended" });
 });
 
-test("A verdict with an illegal best move throws and keeps the accuracy and the eval", () => {
+test("A verdict with an illegal best move throws and keeps the state", () => {
   const line = givenALineAfter(["e2e4", "e7e5"]);
   whenYouPlay(line, "f1a6");
   whenTheEngineGivesAVerdictThatThrows(line, verdict("e7e5", 30, -250));
   thenTheLineThrew(line);
-  thenTheLineIs(line, { eval: null, accuracy: { correct: 0, checked: 0 } });
+  thenTheLineIs(line, { moves: ["e4", "e5", "Ba6"], status: "checkingYourMove", eval: null, accuracy: { correct: 0, checked: 0 } });
 });

@@ -4,10 +4,12 @@ import {
   givenATrainer,
   givenATrainerThatHoldsItsAnswers,
   givenATrainerThatReplies,
+  givenATrainerThatScores,
   givenATrainerWithAFailingEngine,
   givenATrainerWithAFailingExplorer,
   givenATrainerWithAFailingScore,
   givenATrainerWithAFailingView,
+  givenATrainerWithCandidates,
   thenTheEngineExamined,
   thenTheExplorerWasAskedWith,
   thenTheExplorerWasAskedTimes,
@@ -53,6 +55,15 @@ test("Your best move needs no score", async () => {
   thenTheLineIs(trainer, { message: "Best move." });
 });
 
+test("Your move that is the 2nd candidate gets the score of that candidate, with no score call", async () => {
+  const trainer = givenATrainerWithCandidates([{ move: "g1f3", score: 30 }, { move: "b1c3", score: 0 }]);
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouPlay(trainer, "b1c3");
+  thenTheScoreWasNotAsked(trainer);
+  thenTheLineIs(trainer, { status: "tryAgain", message: "Nc3 loses 0.3 pawns. Play Nf3." });
+});
+
 test("Another move gets a score in the position before it", async () => {
   const trainer = givenATrainer();
   await whenYouStart(trainer, 1450);
@@ -66,13 +77,13 @@ test("The status shows each wait", async () => {
   const trainer = givenATrainerThatHoldsItsAnswers();
   whenYouStartALineWithoutWaiting(trainer, 1450);
   thenTheLineIs(trainer, { status: "checkingPosition" });
-  await whenTheEngineAnalyses(trainer, { bestMove: "g1f3", score: 0 });
+  await whenTheEngineAnalyses(trainer, [{ move: "g1f3", score: 0 }]);
   thenTheLineIs(trainer, { status: "yourMove" });
   whenYouStartToPlay(trainer, "e2e4");
   thenTheLineIs(trainer, { status: "waitingForReply" });
   await whenTheExplorerAnswers(trainer, [{ uci: "e7e5", san: "e5", games: 1, percent: 1 }]);
   thenTheLineIs(trainer, { status: "checkingPosition" });
-  await whenTheEngineAnalyses(trainer, { bestMove: "g1f3", score: 30 });
+  await whenTheEngineAnalyses(trainer, [{ move: "g1f3", score: 30 }]);
   thenTheLineIs(trainer, { status: "yourMove" });
   whenYouStartToPlay(trainer, "b1c3");
   thenTheLineIs(trainer, { status: "checkingYourMove" });
@@ -80,7 +91,7 @@ test("The status shows each wait", async () => {
   thenTheLineIs(trainer, { status: "waitingForReply" });
   await whenTheExplorerAnswers(trainer, [{ uci: "b8c6", san: "Nc6", games: 1, percent: 1 }]);
   thenTheLineIs(trainer, { status: "checkingPosition" });
-  await whenTheEngineAnalyses(trainer, { bestMove: "g1f3", score: 0 });
+  await whenTheEngineAnalyses(trainer, [{ move: "g1f3", score: 0 }]);
   thenTheLineIs(trainer, { status: "yourMove" });
   thenTheViewWasShown(trainer, 9);
 });
@@ -158,4 +169,27 @@ test("For Black, your first move gets no check", async () => {
   await whenYouPlay(trainer, "e7e5");
   thenTheScoreWasNotAsked(trainer);
   thenTheLineIs(trainer, { moves: ["e4", "e5", "Nf3"], status: "yourMove" });
+});
+
+const playAMistake = async () => {
+  const trainer = givenATrainerThatScores(-250);
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouPlay(trainer, "f1a6");
+  return trainer;
+};
+
+test("After a mistake, the trainer stops", async () => {
+  const trainer = await playAMistake();
+  thenTheLineIs(trainer, { moves: ["e4", "e5"], status: "tryAgain" });
+  thenTheExplorerWasAskedTimes(trainer, 1);
+  thenTheEngineExamined(trainer, [START, fenAfter(["e2e4", "e7e5"])]);
+});
+
+test("Your second move gets no check and gets a reply", async () => {
+  const trainer = await playAMistake();
+  await whenYouPlay(trainer, "g1f3");
+  thenTheScoreWasAskedWith(trainer, fenAfter(["e2e4", "e7e5"]), "f1a6");
+  thenTheExplorerWasAskedTimes(trainer, 2);
+  thenTheLineIs(trainer, { moves: ["e4", "e5", "Nf3", "Nc6"], status: "yourMove" });
 });

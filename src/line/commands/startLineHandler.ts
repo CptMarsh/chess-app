@@ -22,8 +22,9 @@ export class StartLineHandler implements CommandHandler<StartLine> {
     this.#state.color = command.color;
     this.#state.status = command.color === "white" ? "checkingPosition" : "waitingForReply";
     this.#state.message = "";
-    this.#state.arrow = null;
-    this.#state.eval = null;
+    this.#state.arrows = [];
+    this.#state.acceptable = [];
+    this.#state.evals = [null];
     this.#state.yourMoves = 0;
     this.#state.percents = [];
     this.#state.accuracy = { correct: 0, checked: 0 };

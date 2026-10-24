@@ -1,11 +1,12 @@
 import { expect } from "vitest";
-import { type Analysis, StockfishEngine } from "./engine.ts";
+import type { Candidate } from "../line/messages.ts";
+import { StockfishEngine } from "./engine.ts";
 
 type Answers = { search: string[]; searchmoves?: string[] };
 type TestEngine = {
   engine: StockfishEngine;
   commands: string[];
-  analysis?: Analysis;
+  candidates?: Candidate[];
   score?: number;
   error?: unknown;
 };
@@ -49,7 +50,7 @@ export function givenAnEngineWhoseWorkerFails(): TestEngine {
 
 export async function whenYouAskForAnAnalysis(test: TestEngine, fen: string) {
   try {
-    test.analysis = await test.engine.analyse(fen);
+    test.candidates = await test.engine.analyse(fen);
   } catch (error) {
     test.error = error;
   }
@@ -63,9 +64,9 @@ export async function whenYouAskForTheScoreOf(test: TestEngine, fen: string, mov
   }
 }
 
-export function thenTheAnalysisIs(test: TestEngine, analysis: Analysis) {
+export function thenTheCandidatesAre(test: TestEngine, candidates: Candidate[]) {
   expect(test.error).toBeUndefined();
-  expect(test.analysis).toEqual(analysis);
+  expect(test.candidates).toEqual(candidates);
 }
 
 export function thenTheScoreIs(test: TestEngine, score: number) {

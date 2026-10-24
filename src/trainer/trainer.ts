@@ -1,7 +1,6 @@
-import type { Analysis } from "../engine/engine.ts";
-import { CurrentLine, JudgePosition, JudgeYourMove, PlayReply, PlayYourMove, StartLine, StopLine, type Color, type LineBus, type Reply } from "../line/messages.ts";
+import { CurrentLine, JudgePosition, JudgeYourMove, PlayReply, PlayYourMove, StartLine, StopLine, type Candidate, type Color, type LineBus, type Reply } from "../line/messages.ts";
 
-export type Engine = { analyse(fen: string): Promise<Analysis>; score(fen: string, move: string): Promise<number> };
+export type Engine = { analyse(fen: string): Promise<Candidate[]>; score(fen: string, move: string): Promise<number> };
 export type Explorer = { replies(fen: string, rating: number): Promise<Reply[]> };
 
 export class Trainer {
@@ -10,7 +9,7 @@ export class Trainer {
   readonly #explorer: Explorer;
   readonly #show: () => void;
   #rating = 0;
-  #analysis: Analysis | undefined;
+  #candidates: Candidate[] = [];
 
   constructor(bus: LineBus, engine: Engine, explorer: Explorer, show: () => void) {
     this.#bus = bus;
@@ -34,9 +33,9 @@ export class Trainer {
     await this.#guarded(async () => {
       this.#show();
       if (this.#bus.ask(new CurrentLine()).status === "checkingYourMove") {
-        const { bestMove, score } = this.#analysis!;
-        const yourScore = move === bestMove ? score : await this.#engine.score(fenBefore, move);
-        this.#bus.send(new JudgeYourMove({ bestMove, bestScore: score, yourScore }));
+        const candidates = this.#candidates;
+        const yourScore = candidates.find((candidate) => candidate.move === move)?.score ?? await this.#engine.score(fenBefore, move);
+        this.#bus.send(new JudgeYourMove({ candidates, yourScore }));
         this.#show();
       }
       await this.#prepare();
@@ -52,8 +51,8 @@ export class Trainer {
       line = this.#bus.ask(new CurrentLine());
     }
     if (line.status === "checkingPosition") {
-      this.#analysis = await this.#engine.analyse(line.fen);
-      this.#bus.send(new JudgePosition(this.#analysis.score));
+      this.#candidates = await this.#engine.analyse(line.fen);
+      this.#bus.send(new JudgePosition(this.#candidates[0].score));
       this.#show();
     }
   }

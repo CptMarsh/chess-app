@@ -1,8 +1,7 @@
 import { Chess } from "chess.js";
 import { expect } from "vitest";
-import type { Analysis } from "../engine/engine.ts";
 import { attachLine } from "../line/line.ts";
-import { CurrentLine, LineBus, type Color, type LineView, type Reply } from "../line/messages.ts";
+import { CurrentLine, LineBus, type Candidate, type Color, type LineView, type Reply } from "../line/messages.ts";
 import { Trainer } from "./trainer.ts";
 
 type TestTrainer = {
@@ -13,7 +12,7 @@ type TestTrainer = {
   explorerCalls: { fen: string; rating: number }[];
   shown: { count: number };
   error?: unknown;
-  answerAnalysis?: (analysis: Analysis) => void;
+  answerAnalysis?: (candidates: Candidate[]) => void;
   answerScore?: (score: number) => void;
   answerExplorer?: (replies: Reply[]) => void;
 };
@@ -22,7 +21,7 @@ const DEFAULT_REPLIES = ["e7e5", "b8c6", "a7a6", "g8f6"];
 const SAN: Record<string, string> = { e7e5: "e5", b8c6: "Nc6", a7a6: "a6", g8f6: "Nf6" };
 
 function build(
-  analyse: (test: TestTrainer) => Promise<Analysis>,
+  analyse: (test: TestTrainer) => Promise<Candidate[]>,
   score: (test: TestTrainer) => Promise<number>,
   replies: (test: TestTrainer) => Promise<Reply[]>,
   failingShow?: Error,
@@ -53,7 +52,7 @@ function build(
   return test;
 }
 
-const defaultAnalysis = () => Promise.resolve({ bestMove: "g1f3", score: 0 });
+const defaultAnalysis = () => Promise.resolve([{ move: "g1f3", score: 0 }]);
 const defaultScore = () => Promise.resolve(0);
 
 function defaultReplies(test: TestTrainer): Promise<Reply[]> {
@@ -69,9 +68,17 @@ export function givenATrainerThatReplies(moves: string[]): TestTrainer {
   return build(defaultAnalysis, defaultScore, (test) => Promise.resolve([{ uci: moves[test.explorerCalls.length - 1], san: "", games: 1, percent: 1 }]));
 }
 
+export function givenATrainerThatScores(score: number): TestTrainer {
+  return build(defaultAnalysis, () => Promise.resolve(score), defaultReplies);
+}
+
+export function givenATrainerWithCandidates(candidates: Candidate[]): TestTrainer {
+  return build(() => Promise.resolve(candidates), defaultScore, defaultReplies);
+}
+
 export function givenATrainerThatHoldsItsAnswers(): TestTrainer {
   return build(
-    (test) => new Promise<Analysis>((resolve) => { test.answerAnalysis = resolve; }),
+    (test) => new Promise<Candidate[]>((resolve) => { test.answerAnalysis = resolve; }),
     (test) => new Promise<number>((resolve) => { test.answerScore = resolve; }),
     (test) => new Promise<Reply[]>((resolve) => { test.answerExplorer = resolve; }),
   );
@@ -114,8 +121,8 @@ export function whenYouStartToPlay(test: TestTrainer, move: string) {
   void test.trainer.yourMove(move);
 }
 
-export async function whenTheEngineAnalyses(test: TestTrainer, analysis: Analysis) {
-  test.answerAnalysis?.(analysis);
+export async function whenTheEngineAnalyses(test: TestTrainer, candidates: Candidate[]) {
+  test.answerAnalysis?.(candidates);
   await new Promise((resolve) => setTimeout(resolve));
 }
 

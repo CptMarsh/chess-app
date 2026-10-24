@@ -14,15 +14,19 @@ Feature: Opening trainer
     Then the moves are "1. e4 e5 (42%)"
     And the status is "your move"
     And the Moves field shows "10"
+    And the page background is "rgb(48, 46, 43)"
 
-  Scenario: The app replaces a bad move with the best move
+  Scenario: After a mistake, you play an acceptable move
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 f1a6"
-    Then the message starts with "Ba6 loses"
-    And the moves do not contain "Ba6"
-    And the eval shows a pawn value
-    And the eval bar has a height
+    Then the message is "Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4."
+    And the status is "try again"
+    And the moves are "1. e4 e5 (42%)"
     And the accuracy is "0 of 1 correct (0%)"
+    When the player plays "g1f3"
+    Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%)"
+    And the eval bar has a height
+    And the eval bar shows a number
 
   Scenario: The line ends after 5 of your moves
     Given the player chooses 5 moves
@@ -49,6 +53,11 @@ Feature: Opening trainer
     When the player plays "e7e5"
     Then the moves are "1. e4 (52%) e5 2. Nf3 (70%)"
     And the status is "your move"
+    And the eval bar shows a number
+    When the player presses "ArrowUp"
+    Then the eval bar shows no number
+    When the player presses "ArrowDown"
+    Then the eval bar shows a number
 
   Scenario: The line ends after the number of moves that you choose
     Given the player chooses 3 moves
@@ -56,3 +65,21 @@ Feature: Opening trainer
     When the player plays "e2e4 g1f3 f1b5"
     Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%) 3. Bb5"
     And the status is "line ended"
+
+  Scenario: You move through the moves
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4 g1f3"
+    Then the status is "your move"
+    When the player presses "ArrowLeft"
+    Then the highlighted move is "Nf3"
+    And the board has a "black knight" on "b8"
+    When the player presses "ArrowUp"
+    Then the board has a "white pawn" on "e2"
+    When the player presses "ArrowDown"
+    Then the highlighted move is "Nc6"
+    And the board has a "black knight" on "c6"
+    When the player clicks the move "e4"
+    Then the highlighted move is "e4"
+    And the board has a "black pawn" on "e7"
+    When the player presses "ArrowRight" in the "Rating" field
+    Then the highlighted move is "e4"

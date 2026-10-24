@@ -44,7 +44,7 @@ export function givenALineAfter(moves: string[]): TestLine {
   moves.forEach((move, index) => {
     if (index % 2 === 0) {
       line.bus.send(new PlayYourMove(move));
-      if (index > 0) line.bus.send(new JudgeYourMove({ bestMove: move, bestScore: 0, yourScore: 0 }));
+      if (index > 0) line.bus.send(new JudgeYourMove({ candidates: [{ move, score: 0 }], yourScore: 0 }));
     } else {
       line.bus.send(new PlayReply([{ uci: move, san: "", games: 1, percent: 1 }]));
       line.bus.send(new JudgePosition(0));
@@ -90,13 +90,26 @@ export function thenTheLineIs(line: TestLine, expected: Partial<Omit<LineView, "
   expect({ ...view, moves: view.moves.map(({ san }) => san) }).toMatchObject(expected);
 }
 
-export function thenTheMovesAre(line: TestLine, moves: PlayedMove[]) {
-  expect(line.bus.ask(new CurrentLine()).moves).toEqual(moves);
+export function thenTheMovesAre(line: TestLine, moves: Pick<PlayedMove, "san" | "percent">[]) {
+  expect(line.bus.ask(new CurrentLine()).moves.map(({ san, percent }) => ({ san, percent }))).toEqual(moves);
+}
+
+export function thenTheFenAfterMoveIs(line: TestLine, index: number, fen: string) {
+  expect(line.bus.ask(new CurrentLine()).moves[index].fen).toBe(fen);
+}
+
+export function thenTheEvalsAre(line: TestLine, startEval: number | null, evals: (number | null)[]) {
+  const view = line.bus.ask(new CurrentLine());
+  expect({ startEval: view.startEval, evals: view.moves.map((move) => move.eval) }).toEqual({ startEval, evals });
 }
 
 export function thenTheLegalMovesFrom(line: TestLine, square: string, targets: string[]) {
   const moves = line.bus.ask(new CurrentLine()).legalMoves.get(square) ?? [];
   expect([...moves].sort()).toEqual([...targets].sort());
+}
+
+export function thenTheLegalMovesAre(line: TestLine, moves: Record<string, string[]>) {
+  expect(Object.fromEntries(line.bus.ask(new CurrentLine()).legalMoves)).toEqual(moves);
 }
 
 export function thenThereAreNoLegalMoves(line: TestLine) {

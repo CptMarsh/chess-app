@@ -48,33 +48,53 @@ When("the player plays {string}", async function (this: AppWorld, moves: string)
   }
 });
 
+When("the player presses {string}", async function (this: AppWorld, key: string) {
+  await this.page.keyboard.press(key);
+});
+
+When("the player presses {string} in the {string} field", async function (this: AppWorld, key: string, field: string) {
+  await this.page.getByLabel(field).press(key);
+});
+
+When("the player clicks the move {string}", async function (this: AppWorld, move: string) {
+  await this.page.locator("#moveList .move").filter({ has: this.page.locator(".san", { hasText: new RegExp(`^${move}$`) }) }).click();
+});
+
+Then("the highlighted move is {string}", async function (this: AppWorld, move: string) {
+  await this.waitForText("#moveList .viewed .san", "is", move);
+});
+
+Then("the board has a {string} on {string}", async function (this: AppWorld, piece: string, square: string) {
+  await this.waitForPiece(piece, square);
+});
+
 Then("the Moves field shows {string}", async function (this: AppWorld, moves: string) {
   assert.equal(await this.page.getByLabel("Moves").inputValue(), moves);
 });
 
 Then("the moves are {string}", async function (this: AppWorld, moves: string) {
-  await this.waitForText("#moves", "is", moves);
+  await this.waitForMoves(moves);
 });
 
 Then("the board shows the Black side", async function (this: AppWorld) {
   await this.page.waitForSelector("#board.orientation-black", { timeout: 30_000 });
 });
 
-Then("the moves do not contain {string}", async function (this: AppWorld, move: string) {
-  await this.waitForText("#status", "is", "Status: your move");
-  const shown = (await this.page.textContent("#moves")) ?? "";
-  assert.ok(!shown.includes(move), `#moves shows "${shown}".`);
+Then("the eval bar shows a number", async function (this: AppWorld) {
+  await this.page.waitForFunction(() => /^(\d+\.\d|M)$/.test(document.querySelector("#evalBarText")?.textContent ?? ""), undefined, { timeout: 30_000 });
 });
 
-Then("the eval shows a pawn value", async function (this: AppWorld) {
-  await this.waitForText("#status", "is", "Status: your move");
-  const shown = (await this.page.textContent("#eval")) ?? "";
-  assert.match(shown, /^Eval: ([+-]\d+\.\d|0\.0)$/);
+Then("the eval bar shows no number", async function (this: AppWorld) {
+  await this.waitForText("#evalBarText", "is", "");
 });
 
 Then("the eval bar has a height", async function (this: AppWorld) {
   const height = await this.page.evaluate(() => document.querySelector<HTMLElement>("#evalBarWhite")!.style.height);
   assert.match(height, /^\d+(\.\d+)?%$/);
+});
+
+Then("the page background is {string}", async function (this: AppWorld, color: string) {
+  assert.equal(await this.page.evaluate(() => getComputedStyle(document.body).backgroundColor), color);
 });
 
 Then("the accuracy is {string}", async function (this: AppWorld, accuracy: string) {
@@ -87,8 +107,4 @@ Then("the status is {string}", async function (this: AppWorld, status: string) {
 
 Then("the message is {string}", async function (this: AppWorld, message: string) {
   await this.waitForText("#message", "is", message);
-});
-
-Then("the message starts with {string}", async function (this: AppWorld, start: string) {
-  await this.waitForText("#message", "startsWith", start);
 });
