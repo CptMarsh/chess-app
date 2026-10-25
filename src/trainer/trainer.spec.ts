@@ -14,6 +14,8 @@ import {
   thenTheNodeIs,
   thenTheVariationIs,
   whenYouExplore,
+  whenYouExamine,
+  whenYouExploreAndExamineTheNewPosition,
   thenTheEngineExamined,
   thenTheExplorerWasAskedWith,
   thenTheExplorerWasAskedTimes,
@@ -240,5 +242,53 @@ test("An engine error in an exploration stops the line", async () => {
   await whenYouStart(trainer, 1450);
   await whenYouPlay(trainer, "e2e4");
   await whenYouExplore(trainer, ["e4"], "c7c5");
+  thenTheLineIs(trainer, { status: "ended", message: "The engine did not start. Reload the page." });
+});
+
+test("The trainer keeps the engine lines of the position of the line", async () => {
+  const trainer = givenATrainerWithCandidates([{ move: "g1f3", score: 40, line: ["g1f3", "b8c6"] }, { move: "e2e4", score: 30, line: ["e2e4"] }]);
+  await whenYouStart(trainer, 1450);
+  thenTheNodeIs(trainer, [], { lines: [{ eval: 40, sans: ["Nf3", "Nc6"] }, { eval: 30, sans: ["e4"] }] });
+});
+
+test("An exploration keeps the engine lines of the new position", async () => {
+  const trainer = givenATrainerWithCandidates([{ move: "g1f3", score: 40, line: ["g1f3"] }]);
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouExplore(trainer, ["e4"], "c7c5");
+  thenTheNodeIs(trainer, ["e4", "c5"], { lines: [{ eval: 40, sans: ["Nf3"] }] });
+});
+
+test("Examine asks the engine one time for a position without lines", async () => {
+  const trainer = givenATrainerThatScores(-250, ["f1a6", "b8a6"]);
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouPlay(trainer, "f1a6");
+  await whenYouExamine(trainer, ["e4", "e5", "Ba6", "Nxa6"], 2);
+  thenTheEngineExamined(trainer, [START, fenAfter(["e2e4", "e7e5"]), fenAfter(["e2e4", "e7e5", "f1a6", "b8a6"])]);
+  thenTheNodeIs(trainer, ["e4", "e5", "Ba6", "Nxa6"], { lines: [{ eval: 0, sans: ["Nf3"] }] });
+  thenTheLineIs(trainer, { status: "tryAgain" });
+});
+
+test("Examine does not ask the engine for a position with lines", async () => {
+  const trainer = givenATrainer();
+  await whenYouStart(trainer, 1450);
+  await whenYouExamine(trainer, []);
+  thenTheEngineExamined(trainer, [START]);
+});
+
+test("Examine does not ask the engine again for a position that an exploration examines", async () => {
+  const trainer = givenATrainerWithCandidates([{ move: "g1f3", score: 40, line: ["g1f3"] }]);
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouExploreAndExamineTheNewPosition(trainer, ["e4"], "c7c5");
+  thenTheEngineExamined(trainer, [START, fenAfter(["e2e4", "e7e5"]), fenAfter(["e2e4", "c7c5"])]);
+});
+
+test("An engine error in an examination stops the line", async () => {
+  const trainer = givenATrainerWhoseAnalysisFailsAfter(2, "The engine did not start. Reload the page.");
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouExamine(trainer, ["e4"]);
   thenTheLineIs(trainer, { status: "ended", message: "The engine did not start. Reload the page." });
 });

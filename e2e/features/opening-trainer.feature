@@ -124,6 +124,16 @@ Feature: Opening trainer
     And the player plays "f1b5"
     Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%) (2. Bc4 Nf6 (2... Nc6)) 3. Bb5 a6 (55%)"
 
+  Scenario: You see 3 engine lines in explore mode
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4"
+    Then the status is "your move"
+    And the engine lines are hidden
+    When the player presses "ArrowLeft"
+    Then the engine shows 3 lines from "1... "
+    When the player presses "ArrowDown"
+    Then the engine lines are hidden
+
   Scenario: You delete a variation
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"

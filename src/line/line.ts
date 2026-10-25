@@ -2,6 +2,7 @@ import { DeleteVariationHandler } from "./commands/deleteVariationHandler.ts";
 import { JudgePositionHandler } from "./commands/judgePositionHandler.ts";
 import { JudgeYourMoveHandler } from "./commands/judgeYourMoveHandler.ts";
 import { JudgeVariationPositionHandler } from "./commands/judgeVariationPositionHandler.ts";
+import { KeepEngineLinesHandler } from "./commands/keepEngineLinesHandler.ts";
 import { PlayReplyHandler } from "./commands/playReplyHandler.ts";
 import { PlayVariationMoveHandler } from "./commands/playVariationMoveHandler.ts";
 import { PlayYourMoveHandler } from "./commands/playYourMoveHandler.ts";
@@ -15,6 +16,7 @@ import {
   JudgePosition,
   JudgeVariationPosition,
   JudgeYourMove,
+  KeepEngineLines,
   PlayReply,
   PlayVariationMove,
   PlayYourMove,
@@ -35,6 +37,7 @@ export function attachLine(bus: LineBus, random: () => number = Math.random) {
   bus.onCommand(StopLine, new StopLineHandler(state));
   bus.onCommand(PlayVariationMove, new PlayVariationMoveHandler(state));
   bus.onCommand(JudgeVariationPosition, new JudgeVariationPositionHandler(state));
+  bus.onCommand(KeepEngineLines, new KeepEngineLinesHandler(state));
   bus.onCommand(DeleteVariation, new DeleteVariationHandler(state));
   bus.onQuery(CurrentLine, new CurrentLineHandler(state));
   bus.onQuery(ExploreMoves, new ExploreMovesHandler(state));

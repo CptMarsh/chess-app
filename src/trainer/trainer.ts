@@ -3,6 +3,7 @@ import {
   JudgePosition,
   JudgeVariationPosition,
   JudgeYourMove,
+  KeepEngineLines,
   PlayReply,
   PlayVariationMove,
   PlayYourMove,
@@ -24,6 +25,8 @@ export class Trainer {
   readonly #show: () => void;
   #rating = 0;
   #candidates: Candidate[] = [];
+  // The nodes that the engine examines or examined for their lines. The engine gets each node one time only.
+  readonly #examined = new Set<number>();
 
   constructor(bus: LineBus, engine: Engine, explorer: Explorer, show: () => void) {
     this.#bus = bus;
@@ -58,14 +61,28 @@ export class Trainer {
 
   async exploreMove(at: number, move: string): Promise<void> {
     this.#bus.send(new PlayVariationMove(at, move));
+    const child = this.#bus.ask(new CurrentLine()).nodes.find((node) => node.parent === at && node.uci === move);
+    const examine = child?.eval === null;
+    if (examine) this.#examined.add(child.id);
     await this.#guarded(async () => {
       this.#show();
-      const child = this.#bus.ask(new CurrentLine()).nodes.find((node) => node.parent === at && node.uci === move);
-      if (child?.eval === null) {
-        const [best] = await this.#engine.analyse(child.fen);
-        this.#bus.send(new JudgeVariationPosition(child.id, best.score));
+      if (examine) {
+        const candidates = await this.#engine.analyse(child.fen);
+        this.#bus.send(new JudgeVariationPosition(child.id, candidates[0].score));
+        this.#bus.send(new KeepEngineLines(child.id, candidates));
         this.#show();
       }
+    });
+  }
+
+  async examine(at: number): Promise<void> {
+    const node = this.#bus.ask(new CurrentLine()).nodes.find(({ id }) => id === at);
+    if (!node || node.lines !== null || this.#examined.has(at)) return;
+    this.#examined.add(at);
+    await this.#guarded(async () => {
+      const candidates = await this.#engine.analyse(node.fen);
+      this.#bus.send(new KeepEngineLines(at, candidates));
+      this.#show();
     });
   }
 
@@ -80,6 +97,7 @@ export class Trainer {
     if (line.status === "checkingPosition") {
       this.#candidates = await this.#engine.analyse(line.fen);
       this.#bus.send(new JudgePosition(this.#candidates[0].score));
+      this.#bus.send(new KeepEngineLines(line.current, this.#candidates));
       this.#show();
     }
   }
