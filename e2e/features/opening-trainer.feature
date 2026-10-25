@@ -109,7 +109,8 @@ Feature: Opening trainer
   Scenario: You explore from an old position
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"
-    And the player presses "ArrowLeft"
+    Then the status is "your move"
+    When the player presses "ArrowLeft"
     And the player presses "ArrowLeft"
     Then the highlighted move is "e5"
     When the player plays "f1c4 g8f6"
@@ -137,7 +138,8 @@ Feature: Opening trainer
   Scenario: You delete a variation
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"
-    And the player presses "ArrowLeft"
+    Then the status is "your move"
+    When the player presses "ArrowLeft"
     And the player presses "ArrowLeft"
     And the player plays "f1c4 g8f6"
     When the player right-clicks the move "Nf6"
@@ -151,7 +153,8 @@ Feature: Opening trainer
   Scenario: You copy the PGN
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"
-    And the player presses "ArrowLeft"
+    Then the status is "your move"
+    When the player presses "ArrowLeft"
     And the player presses "ArrowLeft"
     And the player plays "f1c4 g8f6"
     And the player clicks "Copy PGN"
