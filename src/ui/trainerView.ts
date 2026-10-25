@@ -15,7 +15,7 @@ import "./trainer.css";
 
 const NAVIGATION_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
 
-export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove">): () => void {
+export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove">, changeToken: () => void): () => void {
   root.innerHTML = `
     <div id="boardRow">
       <div id="evalBar"><div id="evalBarWhite"></div><span id="evalBarText"></span></div>
@@ -32,12 +32,14 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       <p id="message"></p>
       <p id="accuracy"></p>
       <p id="status"></p>
+      <button id="changeToken">Change token</button>
     </div>
   `;
   const rating = root.querySelector<HTMLInputElement>("#rating")!;
   const movesField = root.querySelector<HTMLInputElement>("#movesField")!;
   const color = root.querySelector("select")!;
   const newLine = root.querySelector("button")!;
+  root.querySelector("#changeToken")!.addEventListener("click", changeToken);
   const moveList = root.querySelector<HTMLElement>("#moveList")!;
   const message = root.querySelector<HTMLElement>("#message")!;
   const accuracy = root.querySelector<HTMLElement>("#accuracy")!;

@@ -10,7 +10,7 @@ tags: [explorer, lichess]
 
 The explorer is an adapter. It does not use the bus. It does not know the rules of the line. A later unit (the trainer) calls it.
 
-`new LichessExplorer(token, fetchAnswer?)` gets the Lichess token. The optional second argument replaces `fetch`. Tests use it.
+`new LichessExplorer(token, fetchAnswer?)` gets a function that gives the Lichess token (`() => string`). `replies` calls it for each request, so a new token is used from the next request. `src/main.ts` gives `() => tokens.read()` of the [token store](token.md). The optional second argument replaces `fetch`. Tests use it.
 
 `replies(fen, rating)` gives a promise of a list of `Reply` objects (`uci`, `san`, `games` and `percent`). It sends a GET request to `https://explorer.lichess.ovh/lichess` with these query parameters:
 
@@ -40,8 +40,8 @@ The explorer gives castling as king to rook, for example `e8h8`. `chess.js` refu
 
 | Problem | Message |
 |---|---|
-| The token is empty. | `Add your Lichess token to .env.local as VITE_LICHESS_TOKEN, then start the app again.` |
-| Lichess gives 401. | `Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token.` |
+| The token is empty. | `Save your Lichess token first. Click Change token.` |
+| Lichess gives 401. | `Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token.` |
 | Lichess gives 429. | `Lichess got too many requests. Wait one minute, then start a new line.` |
 | Lichess gives a different status. | `Lichess did not answer (status 503).` (The number is the status.) |
 | The request fails. | `Lichess did not answer (network error).` |
@@ -50,8 +50,9 @@ The explorer does not try again.
 
 ## Setup
 1. Make a Lichess personal token at `https://lichess.org/account/oauth/token`. It needs no scopes.
-2. Put `VITE_LICHESS_TOKEN=<token>` in `.env.local`. Git ignores `*.local` files.
-3. Do not publish the built app. Vite puts the token into the browser code.
+2. Open the app and paste the token in the token dialog. See [Token store and token dialog](token.md).
+
+The build of the app holds no token. Thus you can publish it.
 
 ## Notes
 - The default for `fetchAnswer` is an arrow function that calls the global `fetch`. A browser throws `Illegal invocation` when `fetch` runs with a different `this`.

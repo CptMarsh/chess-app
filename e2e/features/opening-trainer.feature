@@ -40,7 +40,7 @@ Feature: Opening trainer
     Given the explorer refuses the token
     And the player starts a line with the rating "1450"
     When the player plays "e2e4"
-    Then the message is "Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token."
+    Then the message is "Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token."
     And the status is "line ended"
 
   Scenario: You play Black
@@ -84,3 +84,31 @@ Feature: Opening trainer
     And the board has a "black pawn" on "e7"
     When the player presses "ArrowRight" in the "Rating" field
     Then the highlighted move is "e4"
+
+  @withoutToken
+  Scenario: The app asks for your token
+    Then the token dialog is open
+    And the token dialog has no Cancel button
+    When the player presses "Escape"
+    Then the token dialog is open
+    When the player saves the token ""
+    Then the token message is "Paste your Lichess token."
+    And the token dialog is open
+    When the player saves the token "  my-token "
+    Then the token dialog is closed
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4"
+    Then the moves are "1. e4 e5 (42%)"
+    And the explorer got the token "my-token"
+    When the player reloads the app
+    Then the token dialog is closed
+
+  Scenario: You change the token
+    When the player clicks "Change token"
+    Then the token dialog is open
+    When the player saves the token "new-token"
+    Then the token dialog is closed
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4"
+    Then the moves are "1. e4 e5 (42%)"
+    And the explorer got the token "new-token"

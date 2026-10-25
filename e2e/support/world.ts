@@ -24,9 +24,21 @@ function shownMoves(): string {
 export class AppWorld extends World {
   context!: BrowserContext;
   page!: Page;
+  // The Authorization header of each explorer request, in order.
+  authorizations: string[] = [];
 
   async openApp() {
     await this.page.goto(appUrl);
+  }
+
+  async waitForAuthorization(value: string) {
+    const start = Date.now();
+    while (this.authorizations.at(-1) !== value) {
+      if (Date.now() - start > WAIT) {
+        throw new Error(`The explorer got ${JSON.stringify(this.authorizations.at(-1))}. Wanted: "${value}".`);
+      }
+      await this.page.waitForTimeout(50);
+    }
   }
 
   async play(move: string) {
@@ -102,15 +114,20 @@ setWorldConstructor(AppWorld);
 setDefaultTimeout(60_000);
 
 BeforeAll({ timeout: 60_000 }, async () => {
-  process.env.VITE_LICHESS_TOKEN = "e2e-token";
   server = await createServer({ server: { port: 0 }, logLevel: "silent" });
   await server.listen();
   appUrl = server.resolvedUrls!.local[0];
   browser = await chromium.launch();
 });
 
-Before(async function (this: AppWorld) {
+// Each scenario starts with a saved token, except the scenarios with the tag @withoutToken.
+Before(async function (this: AppWorld, { pickle }) {
   this.context = await browser.newContext();
+  if (!pickle.tags.some((tag) => tag.name === "@withoutToken")) {
+    await this.context.addInitScript(() => {
+      if (localStorage.getItem("lichessToken") === null) localStorage.setItem("lichessToken", "e2e-token");
+    });
+  }
   this.page = await this.context.newPage();
 });
 

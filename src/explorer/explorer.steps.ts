@@ -15,14 +15,14 @@ export function givenAnExplorerThatAnswers(status: number, body: unknown): TestE
     requests.push({ url: new URL(String(input)), init });
     return new Response(JSON.stringify(body), { status });
   };
-  return { explorer: new LichessExplorer("test-token", fetchAnswer), requests };
+  return { explorer: new LichessExplorer(() => "test-token", fetchAnswer), requests };
 }
 
 export function givenAnExplorerOnABrokenNetwork(): TestExplorer {
   const fetchAnswer: typeof fetch = async () => {
     throw new TypeError("Failed to fetch");
   };
-  return { explorer: new LichessExplorer("test-token", fetchAnswer), requests: [] };
+  return { explorer: new LichessExplorer(() => "test-token", fetchAnswer), requests: [] };
 }
 
 export function givenAnExplorerWithoutAToken(): TestExplorer {
@@ -31,7 +31,17 @@ export function givenAnExplorerWithoutAToken(): TestExplorer {
     requests.push({ url: new URL(String(input)), init });
     return new Response(JSON.stringify({ moves: [] }));
   };
-  return { explorer: new LichessExplorer("", fetchAnswer), requests };
+  return { explorer: new LichessExplorer(() => "", fetchAnswer), requests };
+}
+
+export function givenAnExplorerWithAChangingToken(): TestExplorer & { token: { value: string } } {
+  const requests: Request[] = [];
+  const token = { value: "first-token" };
+  const fetchAnswer: typeof fetch = async (input, init) => {
+    requests.push({ url: new URL(String(input)), init });
+    return new Response(JSON.stringify({ white: 0, draws: 0, black: 0, moves: [] }));
+  };
+  return { explorer: new LichessExplorer(() => token.value, fetchAnswer), requests, token };
 }
 
 export function givenAnExplorerThatUsesTheGlobalFetch(): TestExplorer {
@@ -39,7 +49,7 @@ export function givenAnExplorerThatUsesTheGlobalFetch(): TestExplorer {
     if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
     return Promise.resolve(new Response(JSON.stringify({ moves: [] })));
   });
-  return { explorer: new LichessExplorer("test-token"), requests: [] };
+  return { explorer: new LichessExplorer(() => "test-token"), requests: [] };
 }
 
 export async function whenYouAskForReplies(test: TestExplorer, fen: string, rating: number) {
@@ -70,5 +80,5 @@ export function thenNoRequestWasSent(test: TestExplorer) {
 }
 
 export function thenTheRequestHadTheHeader(test: TestExplorer, name: string, value: string) {
-  expect(new Headers(test.requests[0].init?.headers).get(name)).toBe(value);
+  expect(new Headers(test.requests.at(-1)?.init?.headers).get(name)).toBe(value);
 }

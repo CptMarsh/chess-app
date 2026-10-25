@@ -10,17 +10,18 @@ export function ratingBand(rating: number): number {
 }
 
 export class LichessExplorer {
-  readonly #token: string;
+  readonly #token: () => string;
   readonly #fetchAnswer: typeof fetch;
 
-  constructor(token: string, fetchAnswer: typeof fetch = (input, init) => fetch(input, init)) {
+  constructor(token: () => string, fetchAnswer: typeof fetch = (input, init) => fetch(input, init)) {
     this.#token = token;
     this.#fetchAnswer = fetchAnswer;
   }
 
   async replies(fen: string, rating: number): Promise<Reply[]> {
-    if (this.#token === "") {
-      throw new Error("Add your Lichess token to .env.local as VITE_LICHESS_TOKEN, then start the app again.");
+    const token = this.#token();
+    if (token === "") {
+      throw new Error("Save your Lichess token first. Click Change token.");
     }
     const query = new URLSearchParams({
       variant: "standard",
@@ -34,13 +35,13 @@ export class LichessExplorer {
     let answer: Response;
     try {
       answer = await this.#fetchAnswer(`${ADDRESS}?${query}`, {
-        headers: { Authorization: `Bearer ${this.#token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
     } catch {
       throw new Error("Lichess did not answer (network error).");
     }
     if (answer.status === 401) {
-      throw new Error("Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token.");
+      throw new Error("Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token.");
     }
     if (answer.status === 429) {
       throw new Error("Lichess got too many requests. Wait one minute, then start a new line.");

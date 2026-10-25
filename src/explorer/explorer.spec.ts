@@ -3,6 +3,7 @@ import {
   givenAnExplorerOnABrokenNetwork,
   givenAnExplorerThatAnswers,
   givenAnExplorerThatUsesTheGlobalFetch,
+  givenAnExplorerWithAChangingToken,
   givenAnExplorerWithoutAToken,
   thenNoRequestWasSent,
   thenTheErrorIs,
@@ -70,7 +71,7 @@ test("A castling reply comes as standard UCI", async () => {
 });
 
 test.each([
-  [401, "Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token."],
+  [401, "Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token."],
   [429, "Lichess got too many requests. Wait one minute, then start a new line."],
   [503, "Lichess did not answer (status 503)."],
 ])("The status %i gives an error", async (status, message) => {
@@ -88,8 +89,16 @@ test("A network failure gives an error", async () => {
 test("An empty token gives an error and sends no request", async () => {
   const explorer = givenAnExplorerWithoutAToken();
   await whenYouAskForReplies(explorer, FEN, 1450);
-  thenTheErrorIs(explorer, "Add your Lichess token to .env.local as VITE_LICHESS_TOKEN, then start the app again.");
+  thenTheErrorIs(explorer, "Save your Lichess token first. Click Change token.");
   thenNoRequestWasSent(explorer);
+});
+
+test("Each request uses the token of that moment", async () => {
+  const explorer = givenAnExplorerWithAChangingToken();
+  await whenYouAskForReplies(explorer, FEN, 1450);
+  explorer.token.value = "second-token";
+  await whenYouAskForReplies(explorer, FEN, 1450);
+  thenTheRequestHadTheHeader(explorer, "Authorization", "Bearer second-token");
 });
 
 test("The global fetch is called without a different this", async () => {
