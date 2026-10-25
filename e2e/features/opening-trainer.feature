@@ -197,3 +197,35 @@ Feature: Opening trainer
     When the player plays "e2e4"
     Then the moves are "1. e4 e5 (42%)"
     And the explorer got the token "new-token"
+
+  Scenario: The app replies with a move of your opponents on chess.com
+    Given the player has these chess.com games:
+      | white | 1450 | e4 c5 |
+      | white | 1550 | e4 c5 |
+      | white | 1900 | e4 e5 |
+      | black | 1450 | d4 d5 |
+    And the player chooses the source "chess.com" and the username "MyName"
+    And the player starts a line with the rating "1450"
+    When the player plays "e2e4"
+    Then the moves are "1. e4 c5 (100%)"
+    And the status is "your move"
+
+  Scenario: The source and the username stay after a reload
+    Given the player chooses the source "chess.com" and the username "MyName"
+    When the player reloads the app
+    Then the source is "chess.com" and the username is "MyName"
+
+  Scenario: chess.com does not know the username
+    Given chess.com has no player "Nobody"
+    And the player chooses the source "chess.com" and the username "Nobody"
+    And the player starts a line with the rating "1450"
+    When the player plays "e2e4"
+    Then the message is "chess.com has no player Nobody."
+
+  @withoutToken
+  Scenario: The app does not ask for the Lichess token when the source is chess.com
+    Given the player saves the token "my-token"
+    And the player chooses the source "chess.com" and the username "MyName"
+    And the Lichess token is removed
+    When the player reloads the app
+    Then the token dialog is closed

@@ -175,6 +175,14 @@ body {
   width: 56px;
 }
 
+#settings #username {
+  width: 120px;
+}
+
+#settings label[hidden] {
+  display: none;
+}
+
 #moveMenu button {
   border: none;
   background: none;
