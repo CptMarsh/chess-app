@@ -7,12 +7,14 @@ import {
   JudgePosition,
   JudgeVariationPosition,
   JudgeYourMove,
+  KeepEngineLines,
   LineBus,
   PlayReply,
   PlayVariationMove,
   PlayYourMove,
   StartLine,
   StopLine,
+  type Candidate,
   type Color,
   type LineView,
   type MoveNode,
@@ -141,6 +143,10 @@ export function whenYouExplore(line: TestLine, at: number, move: string) {
 
 export function whenTheEngineExaminesTheVariation(line: TestLine, at: number, score: number) {
   line.bus.send(new JudgeVariationPosition(at, score));
+}
+
+export function whenTheEngineGivesTheLines(line: TestLine, at: number, candidates: Candidate[]) {
+  line.bus.send(new KeepEngineLines(at, candidates));
 }
 
 export function whenYouDelete(line: TestLine, at: number) {

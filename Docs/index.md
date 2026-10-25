@@ -16,7 +16,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker, one request at a time.
 - [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
 - [Deployment](deployment.md): the build, the base path `/chess-app/` and the workflow that publishes the app on GitHub Pages.
-- [Trainer screen](trainer-screen.md): the screen that shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the message, the accuracy, the status, and the Copy PGN and Change token buttons. It is dark, in the Darkwood style.
+- [Trainer screen](trainer-screen.md): the screen that shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the engine lines in explore mode, the message, the accuracy, the status, and the Copy PGN and Change token buttons. It is dark, in the Darkwood style.
 
 ## Specs
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer.
@@ -26,6 +26,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Ask for the Lichess token](superpowers/specs/2026-10-25-lichess-token-design.md): the token dialog. The app keeps the token in the browser, so the build holds no token.
 - [Publish on GitHub Pages](superpowers/specs/2026-10-25-github-pages-design.md): each push to `trunk` tests, builds and publishes the app.
 - [Mobile view and navigation buttons](superpowers/specs/2026-10-25-mobile-view-design.md): on a narrow screen, the move list goes under the board. 4 buttons move through the moves, as the arrow keys do.
+- [Engine lines in explore mode](superpowers/specs/2026-10-25-engine-lines-design.md): in explore mode, the panel shows the 3 best Stockfish lines of the position on the board.
 - [Copy PGN](superpowers/specs/2026-10-25-copy-pgn-design.md): a button that puts the PGN of the move tree, with its variations, on the clipboard.
 
 ## Process

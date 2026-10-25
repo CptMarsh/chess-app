@@ -3,10 +3,10 @@ import "chessground/assets/chessground.base.css";
 import "chessground/assets/chessground.brown.css";
 import "chessground/assets/chessground.cburnett.css";
 import type { Key } from "chessground/types";
-import { CurrentLine, DeleteVariation, ExploreMoves, type Color, type LineBus, type MoveNode } from "../line/messages.ts";
+import { CurrentLine, DeleteVariation, ExploreMoves, type Color, type LineBus, type MoveNode, type Status } from "../line/messages.ts";
 import type { Trainer } from "../trainer/trainer.ts";
 import { childOf, keptView, nextView, viewOf } from "./navigation.ts";
-import { accuracyText, barEval, barText, evalBarPercent, moveRows, pathEvals, pgnText, readNumber, statusText, type MoveCell, type VariationLine } from "./text.ts";
+import { accuracyText, barEval, barText, evalBarPercent, lineMoves, lineScore, moveRows, pathEvals, pgnText, readNumber, statusText, type MoveCell, type VariationLine } from "./text.ts";
 import "@fontsource/karla/400.css";
 import "@fontsource/karla/600.css";
 import "@fontsource/jetbrains-mono/600.css";
@@ -14,6 +14,8 @@ import "./darkwood.css";
 import "./trainer.css";
 
 const COPIED_TIME = 1500;
+// The statuses in which you can explore. No answer of the line is pending.
+const EXPLORING: Status[] = ["yourMove", "tryAgain", "ended"];
 const NAVIGATION_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
 const NAVIGATION_BUTTONS = [
   { key: "ArrowUp", label: "Start", icon: "⏮" },
@@ -28,7 +30,7 @@ const COG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke=
 
 type Drop = { line: true } | { line: false; at: number };
 
-export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove">, changeToken: () => void): () => void {
+export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove" | "examine">, changeToken: () => void): () => void {
   root.innerHTML = `
     <div id="boardRow">
       <div id="evalBar"><div id="evalBarWhite"></div><span id="evalBarText"></span></div>
@@ -49,6 +51,7 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       <div id="navigation">
         ${NAVIGATION_BUTTONS.map(({ key, label, icon }) => `<button data-key="${key}" aria-label="${label}">${icon}</button>`).join("")}
       </div>
+      <div id="engineLines" hidden></div>
       <p id="message"></p>
       <p id="accuracy"></p>
       <p id="status"></p>
@@ -68,6 +71,7 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   const copyPgn = root.querySelector<HTMLButtonElement>("#copyPgn")!;
   root.querySelector("#changeToken")!.addEventListener("click", changeToken);
   const moveList = root.querySelector<HTMLElement>("#moveList")!;
+  const engineLines = root.querySelector<HTMLElement>("#engineLines")!;
   const message = root.querySelector<HTMLElement>("#message")!;
   const accuracy = root.querySelector<HTMLElement>("#accuracy")!;
   const evalBar = root.querySelector<HTMLElement>("#evalBar")!;
@@ -149,6 +153,13 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     const viewedMove = moveList.querySelector<HTMLElement>(`[data-id="${at}"]`);
     viewedMove?.classList.add("viewed");
     viewedMove?.scrollIntoView({ block: "nearest" });
+    // Explore mode. At the current position in yourMove or tryAgain, the lines would show the answer.
+    const exploring = !lineMove && EXPLORING.includes(line.status);
+    engineLines.hidden = !exploring;
+    if (exploring) {
+      if (node.lines === null) void trainer.examine(at);
+      engineLines.replaceChildren(...engineLineItems(node));
+    }
     message.textContent = line.message;
     const shownEval = barEval(pathEvals(nodes, at));
     evalBar.classList.toggle("black", line.color === "black");
@@ -262,4 +273,18 @@ function variationLine({ tokens }: VariationLine): HTMLElement {
     element.append(move);
   });
   return element;
+}
+
+function engineLineItems({ fen, lines }: MoveNode): HTMLElement[] {
+  if (lines === null) return [Object.assign(document.createElement("p"), { textContent: "The engine is thinking." })];
+  if (lines.length === 0) return [Object.assign(document.createElement("p"), { textContent: "No moves." })];
+  return lines.map(({ eval: value, sans }) => {
+    const element = document.createElement("div");
+    element.className = "engineLine";
+    element.append(
+      Object.assign(document.createElement("span"), { className: "score", textContent: lineScore(value) }),
+      Object.assign(document.createElement("span"), { className: "moves", textContent: lineMoves(fen, sans) }),
+    );
+    return element;
+  });
 }

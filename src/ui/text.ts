@@ -121,3 +121,22 @@ export function accuracyText({ correct, checked }: Accuracy): string {
   if (checked === 0) return NO_VALUE;
   return `${correct} of ${checked} correct (${Math.round((correct / checked) * 100)}%)`;
 }
+
+// The eval of an engine line, from the White side, with its sign. A value that rounds to 0.0 has no sign.
+export function lineScore(centipawns: number): string {
+  const text = barText(centipawns);
+  if (text === "0.0") return text;
+  return `${centipawns > 0 ? "+" : "-"}${text}`;
+}
+
+// The moves of an engine line from the position of `fen`, with PGN move numbers.
+export function lineMoves(fen: string, sans: string[]): string {
+  const [, side, , , , fullmove] = fen.split(" ");
+  const black = side === "b" ? 1 : 0;
+  return sans.map((san, index) => {
+    const ply = index + black;
+    const number = Number(fullmove) + Math.floor(ply / 2);
+    if (ply % 2 === 0) return `${number}. ${san}`;
+    return index === 0 ? `${number}... ${san}` : san;
+  }).join(" ");
+}

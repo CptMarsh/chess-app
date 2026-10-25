@@ -37,7 +37,7 @@ export class LineState {
 
   newTree() {
     this.nodes = new Map();
-    this.root = this.add({ parent: null, uci: "", san: "", fen: this.chess.fen(), percent: null, eval: null, main: true });
+    this.root = this.add({ parent: null, uci: "", san: "", fen: this.chess.fen(), percent: null, eval: null, lines: null, main: true });
     this.current = this.root;
   }
 
@@ -54,7 +54,7 @@ export class LineState {
 
   playMain(uci: string, percent: number | null) {
     const move = this.chess.move(uciMove(uci));
-    this.current = this.add({ parent: this.current, uci: move.lan, san: move.san, fen: move.after, percent, eval: null, main: true });
+    this.current = this.add({ parent: this.current, uci: move.lan, san: move.san, fen: move.after, percent, eval: null, lines: null, main: true });
   }
 
   remove(id: number) {

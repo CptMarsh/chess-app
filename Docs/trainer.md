@@ -18,7 +18,8 @@ The trainer does the async steps of a line in the correct order. It holds no che
 |---|---|
 | `start(rating, color, moves)` | It gives a promise. It sends `StartLine(rating, color, moves)`. It keeps the rating for the explorer. Then it calls `show()` and does the prepare steps. For Black, the status is `waitingForReply`, so the prepare steps first ask the explorer for the first White move. If `StartLine` throws an error, the promise rejects with that error, and the trainer does no more steps. |
 | `yourMove(move)` | Does the steps below. |
-| `exploreMove(at, move)` | Plays a variation move at node `at`, and asks the engine for the eval of the new position. See "Steps of `exploreMove`". |
+| `exploreMove(at, move)` | Plays a variation move at node `at`, and asks the engine for the eval and the lines of the new position. See "Steps of `exploreMove`". |
+| `examine(at)` | Asks the engine for the lines of node `at`. See "Steps of `examine`". |
 
 ## Steps of `yourMove`
 
@@ -37,18 +38,29 @@ A mistake needs no special step in the trainer:
 
 ## Steps of `exploreMove`
 
-1. Send `PlayVariationMove(at, move)` and call `show()`. These steps run before the first `await`. Thus, when the call gives its promise, the new node is in the tree, and the screen can show it.
-2. Find the child of `at` with this `uci` in `CurrentLine`.
-3. If the eval of that child is `null`: get the candidates from `engine.analyse(fen)` with the `fen` of the child. Then send `JudgeVariationPosition(child.id, candidates[0].score)` and call `show()`.
+1. Send `PlayVariationMove(at, move)`.
+2. Find the child of `at` with this `uci` in `CurrentLine`. If its eval is `null`, the trainer keeps its id in the examined nodes. Thus a call of `examine` for the child asks the engine no second time.
+3. Call `show()`. Steps 1 to 3 run before the first `await`. Thus, when the call gives its promise, the new node is in the tree, and the screen can show it.
+4. If the eval of that child is `null`: get the candidates from `engine.analyse(fen)` with the `fen` of the child. Then send `JudgeVariationPosition(child.id, candidates[0].score)` and `KeepEngineLines(child.id, candidates)`, and call `show()`.
 
 A child with an eval needs no engine: a checkmate, a stalemate, a node of a refutation, or a move that you played before. `exploreMove` does not change the kept candidates of the line. Lichess has no part in an exploration. The engine does one request at a time, so an exploration and the steps of the line never use the engine at the same time.
+
+## Steps of `examine`
+
+The screen calls `examine(at)` in explore mode, when node `at` has no lines. See [Trainer screen](trainer-screen.md).
+
+1. If there is no node `at`, its `lines` are not `null`, or the examined nodes have its id: do nothing.
+2. Keep the id in the examined nodes. The trainer asks for each node one time only, also when the screen calls `examine` many times, or when the engine fails.
+3. Get the candidates from `engine.analyse(fen)` with the `fen` of node `at`. Then send `KeepEngineLines(at, candidates)` and call `show()`.
+
+`examine` does not change the eval or the kept candidates. An engine error stops the line, as in an exploration.
 
 ## The prepare steps
 
 `start` and `yourMove` use the same steps:
 
 1. If the status is `waitingForReply`: get the replies from the explorer for the FEN of the line now. Then send `PlayReply(replies)`.
-2. If the status is `checkingPosition`: get the candidates from `engine.analyse(fen)` for the FEN of the line now. Then send `JudgePosition(candidates[0].score)`.
+2. If the status is `checkingPosition`: get the candidates from `engine.analyse(fen)` for the FEN of the line now. Then send `JudgePosition(candidates[0].score)` and `KeepEngineLines(current, candidates)`. Thus a position of the line has its lines when you come back to it.
 
 The trainer keeps the candidates (a maximum of 3). It uses them for the judgement of your next move. Thus a move that is one of the candidates needs no `score` call.
 
@@ -56,4 +68,4 @@ The trainer keeps the candidates (a maximum of 3). It uses them for the judgemen
 
 If the engine or the explorer throws an error after `StartLine`, the trainer sends `StopLine(error.message)` and calls `show()`. Then it stops.
 
-One `try` covers all steps after `StartLine` (in `start`), after `PlayYourMove` (in `yourMove`) and after `PlayVariationMove` (in `exploreMove`). Thus an engine error during an exploration also stops the line with the error message. It also catches a throw from a handler (`JudgePosition`, `JudgeYourMove` or `PlayReply`) and from each `show()`, also the first one. The line then ends with the message of that error, and the screen does not freeze.
+One `try` covers all steps after `StartLine` (in `start`), after `PlayYourMove` (in `yourMove`), after `PlayVariationMove` (in `exploreMove`) and in `examine`. Thus an engine error during an exploration also stops the line with the error message. It also catches a throw from a handler (`JudgePosition`, `JudgeYourMove` or `PlayReply`) and from each `show()`, also the first one. The line then ends with the message of that error, and the screen does not freeze.

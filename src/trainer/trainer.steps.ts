@@ -21,7 +21,7 @@ const DEFAULT_REPLIES = ["e7e5", "b8c6", "a7a6", "g8f6"];
 const SAN: Record<string, string> = { e7e5: "e5", b8c6: "Nc6", a7a6: "a6", g8f6: "Nf6" };
 
 function build(
-  analyse: (test: TestTrainer) => Promise<Candidate[]>,
+  analyse: (test: TestTrainer, fen: string) => Promise<Candidate[]>,
   score: (test: TestTrainer) => Promise<Candidate>,
   replies: (test: TestTrainer) => Promise<Reply[]>,
   failingShow?: Error,
@@ -32,7 +32,7 @@ function build(
   const engine = {
     analyse: (fen: string) => {
       test.analyseCalls.push(fen);
-      return analyse(test);
+      return analyse(test, fen);
     },
     score: (fen: string, move: string) => {
       test.scoreCalls.push({ fen, move });
@@ -52,7 +52,12 @@ function build(
   return test;
 }
 
-const defaultAnalysis = () => Promise.resolve([{ move: "g1f3", score: 0, line: ["g1f3"] }]);
+// The test engine likes g1f3. When g1f3 is not legal, it takes the first legal move.
+const defaultAnalysis = (_test: TestTrainer, fen: string) => {
+  const moves = new Chess(fen).moves({ verbose: true }).map(({ lan }) => lan);
+  const move = moves.includes("g1f3") ? "g1f3" : moves[0];
+  return Promise.resolve([{ move, score: 0, line: [move] }]);
+};
 const scoreOf = (test: TestTrainer, score: number, line?: string[]): Candidate => {
   const { move } = test.scoreCalls.at(-1)!;
   return { move, score, line: line ?? [move] };
@@ -77,7 +82,7 @@ export function givenATrainerThatScores(score: number, line?: string[]): TestTra
 }
 
 export function givenATrainerWhoseAnalysisFailsAfter(calls: number, message: string): TestTrainer {
-  return build((test) => test.analyseCalls.length > calls ? Promise.reject(new Error(message)) : defaultAnalysis(), defaultScore, defaultReplies);
+  return build((test, fen) => test.analyseCalls.length > calls ? Promise.reject(new Error(message)) : defaultAnalysis(test, fen), defaultScore, defaultReplies);
 }
 
 export function givenATrainerWithCandidates(candidates: Candidate[]): TestTrainer {
@@ -219,4 +224,24 @@ export function thenTheViewWasShown(test: TestTrainer, times: number) {
 
 export function thenYouGetTheError(test: TestTrainer, message: string) {
   expect(test.error).toEqual(new Error(message));
+}
+
+export async function whenYouExamine(test: TestTrainer, after: string[], times = 1) {
+  const at = idOf(test, after);
+  await Promise.all(Array.from({ length: times }, () => test.trainer.examine(at)));
+}
+
+export async function whenYouExploreAndExamineTheNewPosition(test: TestTrainer, after: string[], move: string) {
+  const exploration = test.trainer.exploreMove(idOf(test, after), move);
+  const examination = test.trainer.examine(idOf(test, [...after, new Chess(fenAfterSans(test, after)).move(uciOf(move)).san]));
+  await Promise.all([exploration, examination]);
+}
+
+function fenAfterSans(test: TestTrainer, sans: string[]): string {
+  const at = idOf(test, sans);
+  return test.bus.ask(new CurrentLine()).nodes.find((node) => node.id === at)!.fen;
+}
+
+function uciOf(move: string) {
+  return { from: move.slice(0, 2), to: move.slice(2, 4), promotion: move[4] };
 }

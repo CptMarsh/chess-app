@@ -194,3 +194,20 @@ Then("the clipboard has {string}", async function (this: AppWorld, text: string)
 Then("the Copy PGN button shows {string}", async function (this: AppWorld, text: string) {
   await this.waitForText("#copyPgn", "is", text);
 });
+
+Then("the engine shows {int} lines from {string}", async function (this: AppWorld, count: number, start: string) {
+  await this.page.locator("#engineLines .engineLine").nth(count - 1).waitFor({ timeout: 30_000 });
+  const lines = await this.page.locator("#engineLines .engineLine").evaluateAll((elements) => elements.map((element) => ({
+    score: element.querySelector(".score")?.textContent ?? "",
+    moves: element.querySelector(".moves")?.textContent ?? "",
+  })));
+  assert.equal(lines.length, count);
+  for (const { score, moves } of lines) {
+    assert.match(score, /^([+-](\d+\.\d|M)|0\.0)$/);
+    assert.ok(moves.startsWith(start), `The engine line "${moves}" does not start with "${start}".`);
+  }
+});
+
+Then("the engine lines are hidden", async function (this: AppWorld) {
+  await this.page.locator("#engineLines").waitFor({ state: "hidden", timeout: 30_000 });
+});
