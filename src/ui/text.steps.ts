@@ -1,7 +1,7 @@
 import { Chess } from "chess.js";
 import { expect } from "vitest";
 import type { Accuracy, MoveNode, Status } from "../line/messages.ts";
-import { accuracyText, barEval, barText, evalBarPercent, moveRows, pathEvals, readNumber, statusText, type MoveItem } from "./text.ts";
+import { accuracyText, barEval, barText, evalBarPercent, lineMoves, lineScore, moveRows, pathEvals, readNumber, statusText, type MoveItem } from "./text.ts";
 
 // A node of a test tree: [id, parent, uci, main, percent, eval]. The san and the fen come from chess.js.
 export type TestNode = [number, number | null, string, boolean, (number | null)?, (number | null)?];
@@ -11,11 +11,11 @@ export function treeOf(nodes: TestNode[]): MoveNode[] {
   return nodes.map(([id, parent, uci, main, percent = null, value = null]) => {
     if (parent === null) {
       fens.set(id, new Chess().fen());
-      return { id, parent, uci: "", san: "", fen: fens.get(id)!, percent, eval: value, main };
+      return { id, parent, uci: "", san: "", fen: fens.get(id)!, percent, eval: value, lines: null, main };
     }
     const move = new Chess(fens.get(parent)).move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
     fens.set(id, move.after);
-    return { id, parent, uci, san: move.san, fen: move.after, percent, eval: value, main };
+    return { id, parent, uci, san: move.san, fen: move.after, percent, eval: value, lines: null, main };
   });
 }
 
@@ -65,4 +65,14 @@ export function thenTheBarEvalIs(evals: (number | null)[], shown: number | null)
 
 export function thenTheAccuracyTextIs(accuracy: Accuracy, text: string) {
   expect(accuracyText(accuracy)).toBe(text);
+}
+
+export function thenTheLineScoreIs(centipawns: number, text: string) {
+  expect(lineScore(centipawns)).toBe(text);
+}
+
+export function thenTheLineMovesAre(moves: string[], sans: string[], text: string) {
+  const chess = new Chess();
+  for (const move of moves) chess.move({ from: move.slice(0, 2), to: move.slice(2, 4), promotion: move[4] });
+  expect(lineMoves(chess.fen(), sans)).toBe(text);
 }

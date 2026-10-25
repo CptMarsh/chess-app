@@ -14,6 +14,7 @@ import {
   thenThereAreNoExploreMoves,
   thenThereIsNoNode,
   whenTheEngineExaminesTheVariation,
+  whenTheEngineGivesTheLines,
   whenYouDelete,
   whenYouExplore,
   givenALineAfter,
@@ -634,3 +635,37 @@ test("A new line gives new ids", () => {
   thenTheIdsAreNew(line, oldIds);
 });
 
+
+test("A new node has no engine lines", () => {
+  const line = lineAfterE5();
+  whenYouExplore(line, idOf(line, "e4"), "c7c5");
+  thenTheNodeIs(line, idOf(line), { lines: null });
+  thenTheNodeIs(line, idOf(line, "e4", "e5"), { lines: null });
+  thenTheNodeIs(line, idOf(line, "e4", "c5"), { lines: null });
+});
+
+test("The engine lines are kept in SAN, with the eval from the White side", () => {
+  const line = lineAfterE5();
+  whenTheEngineGivesTheLines(line, idOf(line, "e4", "e5"), [
+    { move: "g1f3", score: 30, line: ["g1f3", "b8c6", "f1b5"] },
+    { move: "f1c4", score: 20, line: ["f1c4"] },
+  ]);
+  whenTheEngineGivesTheLines(line, idOf(line, "e4"), [{ move: "c7c5", score: 30, line: ["c7c5", "g1f3"] }]);
+  thenTheNodeIs(line, idOf(line, "e4", "e5"), { lines: [{ eval: 30, sans: ["Nf3", "Nc6", "Bb5"] }, { eval: 20, sans: ["Bc4"] }] });
+  thenTheNodeIs(line, idOf(line, "e4"), { lines: [{ eval: -30, sans: ["c5", "Nf3"] }] });
+});
+
+test("Engine lines for a deleted node change nothing", () => {
+  const line = lineAfterE5();
+  whenYouExplore(line, idOf(line, "e4"), "c7c5");
+  const at = idOf(line, "e4", "c5");
+  whenYouDelete(line, at);
+  whenTheEngineGivesTheLines(line, at, [{ move: "g1f3", score: 0, line: ["g1f3"] }]);
+  thenThereIsNoNode(line, at);
+});
+
+test("A variation that gives mate has empty engine lines", () => {
+  const line = givenALineAfter(["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6"]);
+  whenYouExplore(line, currentOf(line), "h5f7");
+  thenTheNodeIs(line, idOf(line, "e4", "e5", "Bc4", "Nc6", "Qh5", "Nf6", "Qxf7#"), { lines: [] });
+});

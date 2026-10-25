@@ -6,6 +6,7 @@ export type Arrow = { from: string; to: string };
 export type Candidate = { move: string; score: number; line: string[] };
 export type Verdict = { candidates: Candidate[]; yourScore: number; yourLine: string[] };
 export type Reply = { uci: string; san: string; games: number; percent: number };
+export type EngineLine = { eval: number; sans: string[] };
 export type MoveNode = {
   id: number;
   parent: number | null;
@@ -14,6 +15,7 @@ export type MoveNode = {
   fen: string;
   percent: number | null;
   eval: number | null;
+  lines: EngineLine[] | null;
   main: boolean;
 };
 export type Accuracy = { correct: number; checked: number };
@@ -102,6 +104,16 @@ export class JudgeVariationPosition {
   }
 }
 
+export class KeepEngineLines {
+  readonly at: number;
+  readonly candidates: Candidate[];
+
+  constructor(at: number, candidates: Candidate[]) {
+    this.at = at;
+    this.candidates = candidates;
+  }
+}
+
 export class DeleteVariation {
   readonly at: number;
 
@@ -122,6 +134,6 @@ export class ExploreMoves extends Query<Map<string, string[]>> {
 }
 
 export class LineBus extends Bus<
-  StartLine | JudgePosition | PlayYourMove | JudgeYourMove | PlayReply | StopLine | PlayVariationMove | JudgeVariationPosition | DeleteVariation,
+  StartLine | JudgePosition | PlayYourMove | JudgeYourMove | PlayReply | StopLine | PlayVariationMove | JudgeVariationPosition | KeepEngineLines | DeleteVariation,
   CurrentLine | ExploreMoves
 > {}

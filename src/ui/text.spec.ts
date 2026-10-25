@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import type { Status } from "../line/messages.ts";
 import {
-  thenTheAccuracyTextIs, thenTheBarEvalIs, thenTheBarTextIs, thenTheEvalBarPercentIs, thenTheMoveListIs, thenTheMoveRowsAre, thenThePathEvalsAre,
+  thenTheAccuracyTextIs, thenTheBarEvalIs, thenTheBarTextIs, thenTheEvalBarPercentIs, thenTheLineMovesAre, thenTheLineScoreIs, thenTheMoveListIs, thenTheMoveRowsAre, thenThePathEvalsAre,
   thenTheRatingIs, thenTheStatusTextIs, type TestNode,
 } from "./text.steps.ts";
 
@@ -54,3 +54,8 @@ test.each([
   [{ correct: 0, checked: 0 }, "\u2013"], [{ correct: 7, checked: 9 }, "7 of 9 correct (78%)"],
   [{ correct: 0, checked: 1 }, "0 of 1 correct (0%)"], [{ correct: 2, checked: 3 }, "2 of 3 correct (67%)"],
 ])("The accuracy %j is shown as %j", (accuracy, text) => thenTheAccuracyTextIs(accuracy, text));
+test.each([[30, "+0.3"], [-120, "-1.2"], [0, "0.0"], [-4, "0.0"], [4, "0.0"], [10000, "+M"], [-10000, "-M"]])(
+  "The eval %i of an engine line is shown as %j", (centipawns, text) => thenTheLineScoreIs(centipawns, text));
+test("The moves of an engine line for White have their numbers", () => thenTheLineMovesAre(["e2e4", "e7e5"], ["Nf3", "Nc6", "Bb5"], "2. Nf3 Nc6 3. Bb5"));
+test("The moves of an engine line for Black start with the number and ...", () => thenTheLineMovesAre(["e2e4"], ["e5", "Nf3", "Nc6"], "1... e5 2. Nf3 Nc6"));
+test("An engine line without moves gives an empty text", () => thenTheLineMovesAre([], [], ""));
