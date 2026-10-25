@@ -25,6 +25,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Cog, variations and refutation](superpowers/specs/2026-10-25-cog-variations-refutation-design.md): the settings behind a cog button, variations in a move tree with delete, and the engine continuation that refutes a bad move.
 - [Ask for the Lichess token](superpowers/specs/2026-10-25-lichess-token-design.md): the token dialog. The app keeps the token in the browser, so the build holds no token.
 - [Publish on GitHub Pages](superpowers/specs/2026-10-25-github-pages-design.md): each push to `trunk` tests, builds and publishes the app.
+- [Mobile view and navigation buttons](superpowers/specs/2026-10-25-mobile-view-design.md): on a narrow screen, the move list goes under the board. 4 buttons move through the moves, as the arrow keys do.
 
 ## Process
 We use spec-driven development with a red-green-refactor loop. The unit specs are in `src/**/*.spec.ts` (Vitest). The e2e scenarios are in `e2e/features/` (Cucumber.js and Playwright).

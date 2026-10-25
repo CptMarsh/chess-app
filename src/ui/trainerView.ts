@@ -14,6 +14,12 @@ import "./darkwood.css";
 import "./trainer.css";
 
 const NAVIGATION_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+const NAVIGATION_BUTTONS = [
+  { key: "ArrowUp", label: "Start", icon: "⏮" },
+  { key: "ArrowLeft", label: "Back", icon: "◀" },
+  { key: "ArrowRight", label: "Forward", icon: "▶" },
+  { key: "ArrowDown", label: "End", icon: "⏭" },
+];
 const COG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="3"/>
   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -39,6 +45,9 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       </div>
       <div id="moveMenu" popover="manual"><button>Delete from here</button></div>
       <div id="moveList"></div>
+      <div id="navigation">
+        ${NAVIGATION_BUTTONS.map(({ key, label, icon }) => `<button data-key="${key}" aria-label="${label}">${icon}</button>`).join("")}
+      </div>
       <p id="message"></p>
       <p id="accuracy"></p>
       <p id="status"></p>
@@ -147,6 +156,11 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     show();
   };
 
+  const navigate = (key: string) => {
+    viewed = nextView(key, viewed, nodes, shownCurrent!);
+    show();
+  };
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") moveMenu.hidePopover();
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
@@ -156,8 +170,12 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     }
     if (!NAVIGATION_KEYS.includes(event.key)) return;
     event.preventDefault();
-    viewed = nextView(event.key, viewed, nodes, shownCurrent!);
-    show();
+    navigate(event.key);
+  });
+
+  root.querySelector("#navigation")!.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLElement>("button");
+    if (button) navigate(button.dataset.key!);
   });
 
   moveList.addEventListener("click", (event) => {
