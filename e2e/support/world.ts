@@ -138,7 +138,7 @@ BeforeAll({ timeout: 60_000 }, async () => {
 
 // Each scenario starts with a saved token, except the scenarios with the tag @withoutToken.
 Before(async function (this: AppWorld, { pickle }) {
-  this.context = await browser.newContext();
+  this.context = await browser.newContext({ permissions: ["clipboard-read", "clipboard-write"] });
   if (!pickle.tags.some((tag) => tag.name === "@withoutToken")) {
     await this.context.addInitScript(() => {
       if (localStorage.getItem("lichessToken") === null) localStorage.setItem("lichessToken", "e2e-token");

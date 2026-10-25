@@ -6,13 +6,14 @@ import type { Key } from "chessground/types";
 import { CurrentLine, DeleteVariation, ExploreMoves, type Color, type LineBus, type MoveNode, type Status } from "../line/messages.ts";
 import type { Trainer } from "../trainer/trainer.ts";
 import { childOf, keptView, nextView, viewOf } from "./navigation.ts";
-import { accuracyText, barEval, barText, evalBarPercent, lineMoves, lineScore, moveRows, pathEvals, readNumber, statusText, type MoveCell, type VariationLine } from "./text.ts";
+import { accuracyText, barEval, barText, evalBarPercent, lineMoves, lineScore, moveRows, pathEvals, pgnText, readNumber, statusText, type MoveCell, type VariationLine } from "./text.ts";
 import "@fontsource/karla/400.css";
 import "@fontsource/karla/600.css";
 import "@fontsource/jetbrains-mono/600.css";
 import "./darkwood.css";
 import "./trainer.css";
 
+const COPIED_TIME = 1500;
 // The statuses in which you can explore. No answer of the line is pending.
 const EXPLORING: Status[] = ["yourMove", "tryAgain", "ended"];
 const NAVIGATION_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
@@ -54,7 +55,10 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       <p id="message"></p>
       <p id="accuracy"></p>
       <p id="status"></p>
-      <button id="changeToken">Change token</button>
+      <div id="bottom">
+        <button id="copyPgn">Copy PGN</button>
+        <button id="changeToken">Change token</button>
+      </div>
     </div>
   `;
   const rating = root.querySelector<HTMLInputElement>("#rating")!;
@@ -64,6 +68,7 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   const cog = root.querySelector<HTMLElement>("#cog")!;
   const settings = root.querySelector<HTMLElement>("#settings")!;
   const moveMenu = root.querySelector<HTMLElement>("#moveMenu")!;
+  const copyPgn = root.querySelector<HTMLButtonElement>("#copyPgn")!;
   root.querySelector("#changeToken")!.addEventListener("click", changeToken);
   const moveList = root.querySelector<HTMLElement>("#moveList")!;
   const engineLines = root.querySelector<HTMLElement>("#engineLines")!;
@@ -104,6 +109,15 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   newLine.addEventListener("click", () => {
     trainer.start(readNumber(rating.value), color.value as Color, readNumber(movesField.value)).catch((error: Error) => {
       message.textContent = error.message;
+    });
+  });
+
+  copyPgn.addEventListener("click", () => {
+    navigator.clipboard.writeText(pgnText(bus.ask(new CurrentLine()).nodes)).then(() => {
+      copyPgn.textContent = "Copied";
+      setTimeout(() => { copyPgn.textContent = "Copy PGN"; }, COPIED_TIME);
+    }, () => {
+      message.textContent = "The browser did not copy the PGN.";
     });
   });
 
