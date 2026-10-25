@@ -1,9 +1,9 @@
 ---
 type: component
 title: Trainer screen
-description: The screen of the opening trainer. It shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the navigation buttons, the message, the accuracy, the status and the Change token button.
+description: The screen of the opening trainer. It shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the navigation buttons, the message, the accuracy, the status, and the Copy PGN and Change token buttons.
 resource: src/ui/trainerView.ts
-tags: [ui, screen, chessground, variations, popover, mobile]
+tags: [ui, screen, chessground, variations, popover, mobile, pgn, clipboard]
 ---
 
 # Trainer screen
@@ -28,7 +28,7 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
                            | Play Bb5 or d4.                 |
                            | Accuracy: 7 of 9 correct (78%)  |
                            | Status: try again               |
-                           | [Change token]                  |
+                           | [Copy PGN] [Change token]       |
                            +---------------------------------+
 ```
 
@@ -37,7 +37,7 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | Part | Content |
 |---|---|
 | `#boardRow` | The eval bar and the board, side by side. |
-| `#panel` | The side panel, on the right of `#boardRow`. It is 320 pixels wide and has the height of the board (400 pixels). It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#navigation`, `#message`, `#accuracy`, `#status` and `#changeToken`. |
+| `#panel` | The side panel, on the right of `#boardRow`. It is 320 pixels wide and has the height of the board (400 pixels). It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#navigation`, `#message`, `#accuracy`, `#status` and `#bottom`. |
 | `#top` | The top of the panel: **New line** (`#newLine`) on the left and the cog button (`#cog`) on the right. |
 | `#cog` | The cog button: an inline SVG in `currentColor`, with `aria-label="Settings"` and `popovertarget="settings"`. A click on the cog opens or closes `#settings`. |
 | `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color` and `Moves` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
@@ -55,6 +55,8 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | `#message` | The message of the line, or the rating error. |
 | `#accuracy` | `Accuracy: ` and `accuracyText(accuracy)`. It comes after `#message`. |
 | `#status` | `Status: ` and the status text. |
+| `#bottom` | The bottom of the panel: **Copy PGN** (`#copyPgn`) on the left of **Change token** (`#changeToken`). |
+| **Copy PGN** (`#copyPgn`) | Puts `pgnText(nodes)` on the clipboard. See "Copy PGN". It is always enabled. |
 | **Change token** (`#changeToken`) | Calls `changeToken()`, which opens the [token dialog](token.md). It is always enabled. |
 
 ## Darkwood style
@@ -143,19 +145,19 @@ The navigation buttons do the same: **Start** is ↑, **Back** is ←, **Forward
 - `#boardRow` has `overflow-x: clip`, because the file letters of chessground go 24 pixels past the right side of the board. Thus the page does not scroll sideways.
 
 ```
-+----+------------------+
-|░░░░|                  |
-|▓▓▓▓|      board       |
-|0.3 |                  |
-+----+------------------+
-| [ New line ]      [⚙] |
-| 1.  e4     e5   42%   |
-| 2.  Nf3   [Nc6] 61%   |
-| [⏮] [◀] [▶] [⏭]       |
-| Accuracy: ...         |
-| Status: your move     |
-| [Change token]        |
-+-----------------------+
++----+----------------------+
+|░░░░|                      |
+|▓▓▓▓|      board           |
+|0.3 |                      |
++----+----------------------+
+| [ New line ]      [⚙]     |
+| 1.  e4     e5   42%       |
+| 2.  Nf3   [Nc6] 61%       |
+| [⏮] [◀] [▶] [⏭]           |
+| Accuracy: ...             |
+| Status: your move         |
+| [Copy PGN] [Change token] |
++---------------------------+
 ```
 
 ## Delete
@@ -176,6 +178,14 @@ The screen sends `DeleteVariation` on the bus. It does not use the trainer, beca
 | `keptView(viewed, shownCurrent, current)` | `viewed` when `shownCurrent` is `current`. In all other conditions, `null`. |
 | `childOf(nodes, at, uci)` | The id of the child of `at` with this `uci`, or `undefined`. |
 
+## Copy PGN
+
+A click on **Copy PGN** asks `CurrentLine` and gives `pgnText(nodes)` to `navigator.clipboard.writeText`. The PGN has the full move tree, with its variations, at all positions and in all statuses.
+
+- After the copy, the button text is `Copied` for 1.5 seconds. Then it is `Copy PGN` again.
+- If the browser does not copy, `#message` shows `The browser did not copy the PGN.`
+- The PGN has no tags and no %. Lichess and chess programs accept a PGN with only movetext. For example `1. e4 e5 2. Nf3 (2. Bc4 Nf6) 2... Nc6 *`.
+
 ## Your move
 
 When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to `trainer.yourMove` or `trainer.exploreMove`. A pawn on rank 8 or rank 1 always becomes a queen. For this pawn, the screen adds `q`, for example `b7a8q`.
@@ -190,6 +200,7 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 |---|---|
 | `readNumber(text)` | The number in the text. An empty text, or a text with only spaces, gives `NaN`. |
 | `moveRows(nodes)` | The items of the move list, in order (see "Move list"). An item is a row `{ number, white, black }` or a variation line `{ tokens }`. `white` and `black` are `{ id, san, percent }`. `black` is `null` when the row has only the White move. A token is `"("`, `")"` or a move `{ id, number, san }`. `number` is for example `2.`, `2...` or empty. The number of a move comes from the FEN of its node. |
+| `pgnText(nodes)` | The movetext of the move tree in PGN, then the result `*`. Each variation is in parentheses, right after the move that it is an alternative to, as in PGN. This is not the same as the move list, where the variations of a node come after the row. The move numbers follow the rules of the move list: a White move always has its number, and a Black move has its number with `...` when it is the first move of a variation or comes after a variation. No moves give `*`. |
 | `pathEvals(nodes, id)` | The evals from the start position to node `id`. |
 | `statusText(status)` | The status text from the table above. |
 | `barText(centipawns)` | `null` gives an empty text. `10000` and `-10000` give `M`. Other values give the pawns, rounded to one decimal, with no sign, as on chess.com. For example `30` gives `0.3`, `-120` gives `1.2`, and `-4` gives `0.0`. |
@@ -218,11 +229,12 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 ## Tests
 
 - `src/ui/text.spec.ts` (Vitest) tests the text functions. `src/ui/navigation.spec.ts` tests the navigation functions.
-- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 13 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and its refutation, one for the navigation, one for a phone, one for an exploration from an old position, one for a delete, one for the cog, and 2 for the token dialog. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` and the fixed refutation `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. The real Stockfish gives the same scores and lines each time, so they do not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. Before each scenario, an init script puts the token `e2e-token` in `localStorage`, when there is no token. Scenarios with the tag `@withoutToken` get no init script. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
+- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 14 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and its refutation, one for the navigation, one for a phone, one for an exploration from an old position, one for a delete, one for Copy PGN, one for the cog, and 2 for the token dialog. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` and the fixed refutation `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. The real Stockfish gives the same scores and lines each time, so they do not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. Before each scenario, an init script puts the token `e2e-token` in `localStorage`, when there is no token. Scenarios with the tag `@withoutToken` get no init script. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
 - 2 scenarios are for the [token dialog](token.md). `@withoutToken` The app asks for your token: the dialog is open with no **Cancel**, Escape does not close it, an empty token shows `Paste your Lichess token.`, the saved token goes to the explorer, and after a reload the dialog stays closed. You change the token: **Change token**, a new token, and the explorer gets it. The step of an explorer table keeps the `Authorization` header of each request in `AppWorld.authorizations`. The step `the explorer got the token {string}` waits until the last header is `Bearer <token>`.
 - The step `the moves are` waits until the text that `AppWorld.waitForMoves` makes from `#moveList` is the text of the step. It reads the rows and the variation lines in order. For each row, it takes the number, then the SAN of each move, with ` (42%)` after a move with a %. A variation line gives its tokens with spaces, but with no space after `(` and before `)`, for example `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. Thus the texts in the feature stay `1. e4 e5 (42%) 2. Nf3`.
 - The steps that use the `Rating`, `Color` and `Moves` fields open the cog first if `#settings` is closed (`AppWorld.openSettings`). The steps `the player right-clicks the move {string}`, `the player clicks {string}` (a button by its name), `the player clicks the cog`, `the settings are open` and `the settings are closed` (`:popover-open`) are for the variations and the cog.
 - The navigation scenario uses the steps `the player presses {string}`, `the player presses {string} in the {string} field`, `the player clicks the move {string}`, `the highlighted move is {string}` and `the board has a {string} on {string}`. `AppWorld.waitForPiece(piece, square)` waits until a `cg-board piece` with the classes of the piece (for example `black knight`) has a `translate` on that square. The square math is the inverse of the clicks of `AppWorld.play`.
+- The Copy PGN scenario plays a line with a variation and clicks **Copy PGN**. The step `the clipboard has {string}` reads `navigator.clipboard.readText()`. Each browser context gets the permissions `clipboard-read` and `clipboard-write`. The step `the Copy PGN button shows {string}` checks the text `Copied`.
 - The phone scenario uses the step `the screen is {int} by {int} pixels` (`page.setViewportSize`), with 390 × 844 pixels. The step `the move list is under the board` checks that the top of `#moveList` is under the bottom of `#board`. The step `the page does not scroll sideways` checks that the `scrollWidth` of the page is not more than its `clientWidth`. The scenario clicks the navigation buttons with `the player clicks {string}`.
 - The explorer answer in the e2e tests is one row of the table in the feature. The row is the full move number of the FEN (field 6), counted from 1. The third column of the row is the % of the move. The answer has the position total 100, so the screen shows this %.
 - `AppWorld.play(move)` also plays a variation move: it clicks the squares on the board, as for a line move. It waits for `Status: your move` or `Status: try again`. It keeps the move list and the status. Then it clicks the 2 squares (for the Black side of the board, the click position is turned around), and waits until the text of `#moveList` or the status changes. Thus the next move does not start before the screen shows the move. (After a mistake, the move list can stay the same, but the status changes.)

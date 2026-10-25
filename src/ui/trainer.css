@@ -126,6 +126,11 @@ body {
   cursor: pointer;
 }
 
+#bottom {
+  display: flex;
+  gap: var(--space-2);
+}
+
 #cog,
 #settings input,
 #settings select {

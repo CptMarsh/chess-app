@@ -1,7 +1,7 @@
 import { Chess } from "chess.js";
 import { expect } from "vitest";
 import type { Accuracy, MoveNode, Status } from "../line/messages.ts";
-import { accuracyText, barEval, barText, evalBarPercent, moveRows, pathEvals, readNumber, statusText, type MoveItem } from "./text.ts";
+import { accuracyText, barEval, barText, evalBarPercent, moveRows, pathEvals, pgnText, readNumber, statusText, type MoveItem } from "./text.ts";
 
 // A node of a test tree: [id, parent, uci, main, percent, eval]. The san and the fen come from chess.js.
 export type TestNode = [number, number | null, string, boolean, (number | null)?, (number | null)?];
@@ -41,6 +41,10 @@ export function thenTheMoveRowsAre(nodes: TestNode[], items: MoveItem[]) {
 
 export function thenTheMoveListIs(nodes: TestNode[], text: string) {
   expect(textOf(moveRows(treeOf(nodes)))).toBe(text);
+}
+
+export function thenThePgnIs(nodes: TestNode[], pgn: string) {
+  expect(pgnText(treeOf(nodes))).toBe(pgn);
 }
 
 export function thenThePathEvalsAre(nodes: TestNode[], id: number, evals: (number | null)[]) {

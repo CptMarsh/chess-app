@@ -186,3 +186,11 @@ Then("the page does not scroll sideways", async function (this: AppWorld) {
   const widths = await this.page.evaluate(() => ({ page: document.documentElement.scrollWidth, screen: document.documentElement.clientWidth }));
   assert.ok(widths.page <= widths.screen, `The page is ${widths.page} pixels wide. The screen is ${widths.screen} pixels wide.`);
 });
+
+Then("the clipboard has {string}", async function (this: AppWorld, text: string) {
+  assert.equal(await this.page.evaluate(() => navigator.clipboard.readText()), text);
+});
+
+Then("the Copy PGN button shows {string}", async function (this: AppWorld, text: string) {
+  await this.waitForText("#copyPgn", "is", text);
+});

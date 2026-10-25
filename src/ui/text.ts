@@ -68,6 +68,28 @@ export function moveRows(nodes: MoveNode[]): MoveItem[] {
   return items;
 }
 
+// The movetext of the tree in PGN, with the result "*". A variation comes right after the move that it is an alternative to.
+export function pgnText(nodes: MoveNode[]): string {
+  const children = (id: number) => {
+    const all = nodes.filter((node) => node.parent === id);
+    return [...all.filter((node) => node.main), ...all.filter((node) => !node.main)];
+  };
+  const tokens: string[] = [];
+  const play = ([move, ...alternatives]: MoveNode[], numbered: boolean) => {
+    if (!move) return;
+    const { number, white } = moveNumber(move);
+    tokens.push(white ? `${number}. ${move.san}` : numbered ? `${number}... ${move.san}` : move.san);
+    for (const alternative of alternatives) {
+      tokens.push("(");
+      play([alternative], true);
+      tokens.push(")");
+    }
+    play(children(move.id), alternatives.length > 0);
+  };
+  play(children(nodes.find((node) => node.parent === null)!.id), true);
+  return [...tokens, "*"].join(" ").replaceAll("( ", "(").replaceAll(" )", ")");
+}
+
 export function pathEvals(nodes: MoveNode[], id: number): (number | null)[] {
   const evals: (number | null)[] = [];
   for (let node = nodes.find((found) => found.id === id); node; node = nodes.find((found) => found.id === node!.parent)) evals.unshift(node.eval);

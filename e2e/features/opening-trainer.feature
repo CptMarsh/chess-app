@@ -138,6 +138,16 @@ Feature: Opening trainer
     Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%)"
     And the highlighted move is "e5"
 
+  Scenario: You copy the PGN
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4 g1f3"
+    And the player presses "ArrowLeft"
+    And the player presses "ArrowLeft"
+    And the player plays "f1c4 g8f6"
+    And the player clicks "Copy PGN"
+    Then the clipboard has "1. e4 e5 2. Nf3 (2. Bc4 Nf6) 2... Nc6 *"
+    And the Copy PGN button shows "Copied"
+
   Scenario: The settings are behind the cog
     Then the settings are open
     Given the player starts a line with the rating "1450"
