@@ -1,6 +1,20 @@
-import { CurrentLine, JudgePosition, JudgeYourMove, PlayReply, PlayYourMove, StartLine, StopLine, type Candidate, type Color, type LineBus, type Reply } from "../line/messages.ts";
+import {
+  CurrentLine,
+  JudgePosition,
+  JudgeVariationPosition,
+  JudgeYourMove,
+  PlayReply,
+  PlayVariationMove,
+  PlayYourMove,
+  StartLine,
+  StopLine,
+  type Candidate,
+  type Color,
+  type LineBus,
+  type Reply,
+} from "../line/messages.ts";
 
-export type Engine = { analyse(fen: string): Promise<Candidate[]>; score(fen: string, move: string): Promise<number> };
+export type Engine = { analyse(fen: string): Promise<Candidate[]>; score(fen: string, move: string): Promise<Candidate> };
 export type Explorer = { replies(fen: string, rating: number): Promise<Reply[]> };
 
 export class Trainer {
@@ -34,11 +48,24 @@ export class Trainer {
       this.#show();
       if (this.#bus.ask(new CurrentLine()).status === "checkingYourMove") {
         const candidates = this.#candidates;
-        const yourScore = candidates.find((candidate) => candidate.move === move)?.score ?? await this.#engine.score(fenBefore, move);
-        this.#bus.send(new JudgeYourMove({ candidates, yourScore }));
+        const yours = candidates.find((candidate) => candidate.move === move) ?? await this.#engine.score(fenBefore, move);
+        this.#bus.send(new JudgeYourMove({ candidates, yourScore: yours.score, yourLine: yours.line }));
         this.#show();
       }
       await this.#prepare();
+    });
+  }
+
+  async exploreMove(at: number, move: string): Promise<void> {
+    this.#bus.send(new PlayVariationMove(at, move));
+    await this.#guarded(async () => {
+      this.#show();
+      const child = this.#bus.ask(new CurrentLine()).nodes.find((node) => node.parent === at && node.uci === move);
+      if (child?.eval === null) {
+        const [best] = await this.#engine.analyse(child.fen);
+        this.#bus.send(new JudgeVariationPosition(child.id, best.score));
+        this.#show();
+      }
     });
   }
 

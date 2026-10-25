@@ -85,29 +85,14 @@ body {
   background: var(--surface-200);
 }
 
-#settings {
+#top {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
-  gap: var(--space-2);
   margin-bottom: var(--space-2);
 }
 
-#settings input,
-#settings select {
-  padding: 2px var(--space-1);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-300);
-  color: var(--ink);
-  font: inherit;
-}
-
-#settings input {
-  width: 56px;
-}
-
-#settings button {
+#newLine {
   padding: var(--space-1) var(--space-4);
   border: none;
   border-radius: var(--radius-sm);
@@ -118,9 +103,61 @@ body {
   cursor: pointer;
 }
 
-#settings button:disabled {
+#newLine:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+#cog,
+#settings input,
+#settings select {
+  padding: 2px var(--space-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-300);
+  color: var(--ink);
+  font: inherit;
+}
+
+#cog {
+  display: flex;
+  cursor: pointer;
+}
+
+#settings,
+#moveMenu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-300);
+  color: var(--ink);
+}
+
+#settings:popover-open {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+#settings label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+#settings input {
+  width: 56px;
+}
+
+#moveMenu button {
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }
 
 #moveList {
@@ -142,6 +179,16 @@ body {
 
 .move {
   cursor: pointer;
+}
+
+.variations {
+  padding-left: var(--space-4);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.variations .number:not(:empty) {
+  margin-right: var(--space-1);
 }
 
 .percent {

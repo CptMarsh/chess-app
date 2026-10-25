@@ -30,14 +30,17 @@ Given("the player opens the app", async function (this: AppWorld) {
 });
 
 Given("the player chooses the color {string}", async function (this: AppWorld, label: string) {
+  await this.openSettings();
   await this.page.getByLabel("Color").selectOption({ label });
 });
 
 Given("the player chooses {int} moves", async function (this: AppWorld, moves: number) {
+  await this.openSettings();
   await this.page.getByLabel("Moves").fill(String(moves));
 });
 
 Given("the player starts a line with the rating {string}", async function (this: AppWorld, rating: string) {
+  await this.openSettings();
   await this.page.getByLabel("Rating").fill(rating);
   await this.page.getByRole("button", { name: "New line" }).click();
 });
@@ -53,11 +56,32 @@ When("the player presses {string}", async function (this: AppWorld, key: string)
 });
 
 When("the player presses {string} in the {string} field", async function (this: AppWorld, key: string, field: string) {
+  await this.openSettings();
   await this.page.getByLabel(field).press(key);
 });
 
 When("the player clicks the move {string}", async function (this: AppWorld, move: string) {
   await this.page.locator("#moveList .move").filter({ has: this.page.locator(".san", { hasText: new RegExp(`^${move}$`) }) }).click();
+});
+
+When("the player right-clicks the move {string}", async function (this: AppWorld, move: string) {
+  await this.page.locator("#moveList .move").filter({ has: this.page.locator(".san", { hasText: new RegExp(`^${move}$`) }) }).click({ button: "right" });
+});
+
+When("the player clicks {string}", async function (this: AppWorld, name: string) {
+  await this.page.getByRole("button", { name }).click();
+});
+
+When("the player clicks the cog", async function (this: AppWorld) {
+  await this.page.getByRole("button", { name: "Settings" }).click();
+});
+
+Then("the settings are open", async function (this: AppWorld) {
+  assert.ok(await this.settingsAreOpen(), "The settings are closed.");
+});
+
+Then("the settings are closed", async function (this: AppWorld) {
+  assert.ok(!(await this.settingsAreOpen()), "The settings are open.");
 });
 
 Then("the highlighted move is {string}", async function (this: AppWorld, move: string) {
@@ -69,6 +93,7 @@ Then("the board has a {string} on {string}", async function (this: AppWorld, pie
 });
 
 Then("the Moves field shows {string}", async function (this: AppWorld, moves: string) {
+  await this.openSettings();
   assert.equal(await this.page.getByLabel("Moves").inputValue(), moves);
 });
 

@@ -10,6 +10,10 @@ import {
   givenATrainerWithAFailingScore,
   givenATrainerWithAFailingView,
   givenATrainerWithCandidates,
+  givenATrainerWhoseAnalysisFailsAfter,
+  thenTheNodeIs,
+  thenTheVariationIs,
+  whenYouExplore,
   thenTheEngineExamined,
   thenTheExplorerWasAskedWith,
   thenTheExplorerWasAskedTimes,
@@ -56,7 +60,7 @@ test("Your best move needs no score", async () => {
 });
 
 test("Your move that is the 2nd candidate gets the score of that candidate, with no score call", async () => {
-  const trainer = givenATrainerWithCandidates([{ move: "g1f3", score: 30 }, { move: "b1c3", score: 0 }]);
+  const trainer = givenATrainerWithCandidates([{ move: "g1f3", score: 30, line: ["g1f3"] }, { move: "b1c3", score: 0, line: ["b1c3"] }]);
   await whenYouStart(trainer, 1450);
   await whenYouPlay(trainer, "e2e4");
   await whenYouPlay(trainer, "b1c3");
@@ -77,13 +81,13 @@ test("The status shows each wait", async () => {
   const trainer = givenATrainerThatHoldsItsAnswers();
   whenYouStartALineWithoutWaiting(trainer, 1450);
   thenTheLineIs(trainer, { status: "checkingPosition" });
-  await whenTheEngineAnalyses(trainer, [{ move: "g1f3", score: 0 }]);
+  await whenTheEngineAnalyses(trainer, [{ move: "g1f3", score: 0, line: ["g1f3"] }]);
   thenTheLineIs(trainer, { status: "yourMove" });
   whenYouStartToPlay(trainer, "e2e4");
   thenTheLineIs(trainer, { status: "waitingForReply" });
   await whenTheExplorerAnswers(trainer, [{ uci: "e7e5", san: "e5", games: 1, percent: 1 }]);
   thenTheLineIs(trainer, { status: "checkingPosition" });
-  await whenTheEngineAnalyses(trainer, [{ move: "g1f3", score: 30 }]);
+  await whenTheEngineAnalyses(trainer, [{ move: "g1f3", score: 30, line: ["g1f3"] }]);
   thenTheLineIs(trainer, { status: "yourMove" });
   whenYouStartToPlay(trainer, "b1c3");
   thenTheLineIs(trainer, { status: "checkingYourMove" });
@@ -91,7 +95,7 @@ test("The status shows each wait", async () => {
   thenTheLineIs(trainer, { status: "waitingForReply" });
   await whenTheExplorerAnswers(trainer, [{ uci: "b8c6", san: "Nc6", games: 1, percent: 1 }]);
   thenTheLineIs(trainer, { status: "checkingPosition" });
-  await whenTheEngineAnalyses(trainer, [{ move: "g1f3", score: 0 }]);
+  await whenTheEngineAnalyses(trainer, [{ move: "g1f3", score: 0, line: ["g1f3"] }]);
   thenTheLineIs(trainer, { status: "yourMove" });
   thenTheViewWasShown(trainer, 9);
 });
@@ -192,4 +196,49 @@ test("Your second move gets no check and gets a reply", async () => {
   thenTheScoreWasAskedWith(trainer, fenAfter(["e2e4", "e7e5"]), "f1a6");
   thenTheExplorerWasAskedTimes(trainer, 2);
   thenTheLineIs(trainer, { moves: ["e4", "e5", "Nf3", "Nc6"], status: "yourMove" });
+});
+
+test("The verdict has the line of your move from the score", async () => {
+  const trainer = givenATrainerThatScores(-250, ["f1a6", "b8a6", "g1f3"]);
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouPlay(trainer, "f1a6");
+  thenTheVariationIs(trainer, ["e4", "e5"], ["Ba6", "Nxa6", "Nf3"]);
+});
+
+test("The verdict has the line of your move from its candidate", async () => {
+  const trainer = givenATrainerWithCandidates([{ move: "g1f3", score: 30, line: ["g1f3"] }, { move: "b1c3", score: 0, line: ["b1c3", "g8f6"] }]);
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouPlay(trainer, "b1c3");
+  thenTheScoreWasNotAsked(trainer);
+  thenTheVariationIs(trainer, ["e4", "e5"], ["Nc3", "Nf6"]);
+});
+
+test("An exploration sends the move, asks the engine and sends the eval", async () => {
+  const trainer = givenATrainerWithCandidates([{ move: "g1f3", score: 40, line: ["g1f3"] }]);
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouExplore(trainer, ["e4"], "c7c5");
+  thenTheEngineExamined(trainer, [START, fenAfter(["e2e4", "e7e5"]), fenAfter(["e2e4", "c7c5"])]);
+  thenTheNodeIs(trainer, ["e4", "c5"], { eval: 40, main: false });
+  thenTheLineIs(trainer, { moves: ["e4", "e5"], status: "yourMove" });
+  thenTheViewWasShown(trainer, 7);
+});
+
+test("An exploration to a position with an eval does not ask the engine", async () => {
+  const trainer = givenATrainerThatReplies(["e7e5", "b8c6", "g8f6"]);
+  await whenYouStart(trainer, 1450, "white", 4);
+  for (const move of ["e2e4", "f1c4", "d1h5"]) await whenYouPlay(trainer, move);
+  await whenYouExplore(trainer, ["e4", "e5", "Bc4", "Nc6", "Qh5", "Nf6"], "h5f7");
+  thenTheEngineExamined(trainer, [START, fenAfter(["e2e4", "e7e5"]), fenAfter(["e2e4", "e7e5", "f1c4", "b8c6"]), fenAfter(["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6"])]);
+  thenTheNodeIs(trainer, ["e4", "e5", "Bc4", "Nc6", "Qh5", "Nf6", "Qxf7#"], { eval: 10000 });
+});
+
+test("An engine error in an exploration stops the line", async () => {
+  const trainer = givenATrainerWhoseAnalysisFailsAfter(2, "The engine did not start. Reload the page.");
+  await whenYouStart(trainer, 1450);
+  await whenYouPlay(trainer, "e2e4");
+  await whenYouExplore(trainer, ["e4"], "c7c5");
+  thenTheLineIs(trainer, { status: "ended", message: "The engine did not start. Reload the page." });
 });

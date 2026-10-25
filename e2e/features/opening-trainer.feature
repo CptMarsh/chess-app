@@ -17,15 +17,19 @@ Feature: Opening trainer
     And the page background is "rgb(22, 17, 13)"
     And the font "Karla" is loaded
 
-  Scenario: After a mistake, you play an acceptable move
+  Scenario: After a mistake, you see the refutation and you play an acceptable move
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 f1a6"
     Then the message is "Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4."
     And the status is "try again"
-    And the moves are "1. e4 e5 (42%)"
+    And the moves are "1. e4 e5 (42%) (2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)"
     And the accuracy is "0 of 1 correct (0%)"
-    When the player plays "g1f3"
-    Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%)"
+    When the player clicks the move "Nxa6"
+    Then the board has a "black knight" on "a6"
+    And the eval bar shows a number
+    When the player presses "ArrowDown"
+    And the player plays "g1f3"
+    Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%) (2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)"
     And the eval bar has a height
     And the eval bar shows a number
 
@@ -84,3 +88,44 @@ Feature: Opening trainer
     And the board has a "black pawn" on "e7"
     When the player presses "ArrowRight" in the "Rating" field
     Then the highlighted move is "e4"
+
+  Scenario: You explore from an old position
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4 g1f3"
+    And the player presses "ArrowLeft"
+    And the player presses "ArrowLeft"
+    Then the highlighted move is "e5"
+    When the player plays "f1c4 g8f6"
+    Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%) (2. Bc4 Nf6)"
+    And the highlighted move is "Nf6"
+    And the eval bar shows a number
+    And the status is "your move"
+    When the player presses "ArrowLeft"
+    And the player plays "b8c6"
+    Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%) (2. Bc4 Nf6 (2... Nc6))"
+    When the player presses "ArrowDown"
+    And the player plays "f1b5"
+    Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%) (2. Bc4 Nf6 (2... Nc6)) 3. Bb5 a6 (55%)"
+
+  Scenario: You delete a variation
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4 g1f3"
+    And the player presses "ArrowLeft"
+    And the player presses "ArrowLeft"
+    And the player plays "f1c4 g8f6"
+    When the player right-clicks the move "Nf6"
+    And the player clicks "Delete from here"
+    Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%) (2. Bc4)"
+    And the highlighted move is "Bc4"
+    When the player presses "Delete"
+    Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%)"
+    And the highlighted move is "e5"
+
+  Scenario: The settings are behind the cog
+    Then the settings are open
+    Given the player starts a line with the rating "1450"
+    Then the settings are closed
+    When the player clicks the cog
+    Then the settings are open
+    When the player presses "Escape"
+    Then the settings are closed

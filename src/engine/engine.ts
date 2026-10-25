@@ -14,6 +14,7 @@ export class StockfishEngine {
   readonly #ready: Promise<string[]>;
   #waiting: Waiting | undefined;
   #failed = false;
+  #queue: Promise<unknown> = Promise.resolve();
 
   constructor(worker: EngineWorker) {
     this.#worker = worker;
@@ -26,25 +27,39 @@ export class StockfishEngine {
     this.#ready.catch(() => {});
   }
 
-  async analyse(fen: string): Promise<Candidate[]> {
-    await this.#ready;
-    this.#worker.postMessage(`setoption name MultiPV value ${LINES}`);
-    this.#worker.postMessage("ucinewgame");
-    await this.#ask("isready", "readyok");
-    const candidates = new Map<number, Candidate>();
-    for (const line of await this.#search(fen, `go depth ${DEPTH}`)) {
-      const found = / multipv (\d+) .* pv (\S+)/.exec(line);
-      const score = scoreOf(line);
-      if (found && score !== undefined) candidates.set(Number(found[1]), { move: found[2], score });
-    }
-    return [...candidates].sort(([a], [b]) => a - b).map(([, candidate]) => candidate);
+  analyse(fen: string): Promise<Candidate[]> {
+    return this.#inTurn(async () => {
+      await this.#ready;
+      this.#worker.postMessage(`setoption name MultiPV value ${LINES}`);
+      this.#worker.postMessage("ucinewgame");
+      await this.#ask("isready", "readyok");
+      const candidates = new Map<number, Candidate>();
+      for (const line of await this.#search(fen, `go depth ${DEPTH}`)) {
+        const found = / multipv (\d+) /.exec(line);
+        const score = scoreOf(line);
+        const moves = lineOf(line);
+        if (found && score !== undefined && moves) candidates.set(Number(found[1]), { move: moves[0], score, line: moves });
+      }
+      return [...candidates].sort(([a], [b]) => a - b).map(([, candidate]) => candidate);
+    });
   }
 
-  async score(fen: string, move: string): Promise<number> {
-    await this.#ready;
-    let score = 0;
-    for (const line of await this.#search(fen, `go depth ${DEPTH} searchmoves ${move}`)) score = scoreOf(line) ?? score;
-    return score;
+  score(fen: string, move: string): Promise<Candidate> {
+    return this.#inTurn(async () => {
+      await this.#ready;
+      let candidate: Candidate = { move, score: 0, line: [move] };
+      for (const line of await this.#search(fen, `go depth ${DEPTH} searchmoves ${move}`)) {
+        const score = scoreOf(line);
+        if (score !== undefined) candidate = { move, score, line: lineOf(line) ?? [move] };
+      }
+      return candidate;
+    });
+  }
+
+  #inTurn<T>(work: () => Promise<T>): Promise<T> {
+    const result = this.#queue.then(work);
+    this.#queue = result.catch(() => {});
+    return result;
   }
 
   #search(fen: string, go: string): Promise<string[]> {
@@ -81,4 +96,8 @@ function scoreOf(line: string): number | undefined {
   const found = / score (cp|mate) (-?\d+)/.exec(line);
   if (!found) return undefined;
   return found[1] === "cp" ? Number(found[2]) : Number(found[2]) > 0 ? MATE : -MATE;
+}
+
+function lineOf(line: string): string[] | undefined {
+  return / pv (.+)$/.exec(line)?.[1].trim().split(/\s+/);
 }
