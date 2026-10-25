@@ -20,6 +20,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer.
 - [Eval, accuracy, line length and Black](superpowers/specs/2026-10-24-eval-accuracy-length-black-design.md): the % of each opponent move, the eval and the eval bar, your accuracy, the line length, and Black as your color.
 - [Try again, move list, eval number and dark mode](superpowers/specs/2026-10-24-try-again-move-list-dark-design.md): a maximum of 3 acceptable moves after a mistake, the move list at the side of the board with the arrow keys, the number on the eval bar, and dark mode.
+- [Cog, variations and refutation](superpowers/specs/2026-10-25-cog-variations-refutation-design.md): the settings behind a cog button, variations in a move tree with delete, and the engine continuation that refutes a bad move.
 
 ## Process
 We use spec-driven development with a red-green-refactor loop. The unit specs are in `src/**/*.spec.ts` (Vitest). The e2e scenarios are in `e2e/features/` (Cucumber.js and Playwright).
