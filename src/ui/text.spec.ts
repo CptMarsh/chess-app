@@ -1,8 +1,8 @@
 import { test } from "vitest";
 import type { Status } from "../line/messages.ts";
 import {
-  thenTheAccuracyTextIs, thenTheBarEvalIs, thenTheBarTextIs, thenTheEvalBarPercentIs, thenTheMoveListIs, thenTheMoveRowsAre, thenThePathEvalsAre,
-  thenTheRatingIs, thenTheStatusTextIs, type TestNode,
+  thenTheAccuracyTextIs, thenTheBarEvalIs, thenTheBarTextIs, thenTheEvalBarPercentIs, thenTheLineMovesAre, thenTheLineScoreIs, thenTheMoveListIs, thenTheMoveRowsAre, thenThePathEvalsAre,
+  thenThePgnIs, thenTheRatingIs, thenTheStatusTextIs, type TestNode,
 } from "./text.steps.ts";
 
 test.each(["", "  "])("The empty rating %j is not a number", (text) => thenTheRatingIs(text, Number.NaN));
@@ -38,6 +38,17 @@ test("A nested variation comes after the move that it is an alternative to", () 
 test("A Black move after a nested variation has its number", () => thenTheMoveListIs(
   [...LINE, [4, 2, "f1c4", false], [5, 4, "g8f6", false], [6, 5, "d2d3", false], [7, 5, "b1c3", false], [8, 6, "f8c5", false]],
   "1. e4 e5 (42%) 2. Nf3 (2. Bc4 Nf6 3. d3 (3. Nc3) 3... Bc5)"));
+test("No moves give the PGN *", () => thenThePgnIs([[0, null, "", true]], "*"));
+test("The main line gives its PGN", () => thenThePgnIs(LINE, "1. e4 e5 2. Nf3 *"));
+test("A variation of a White move comes right after the move", () => thenThePgnIs(
+  [...LINE, [4, 2, "f1c4", false], [5, 4, "g8f6", false], [6, 3, "b8c6", true]], "1. e4 e5 2. Nf3 (2. Bc4 Nf6) 2... Nc6 *"));
+test("A variation of a Black move comes right after the move", () => thenThePgnIs(
+  [...LINE, [4, 1, "c7c5", false], [5, 4, "g1f3", false]], "1. e4 e5 (1... c5 2. Nf3) 2. Nf3 *"));
+test("A variation of the first move comes right after the first move", () => thenThePgnIs(
+  [...LINE, [4, 0, "d2d4", false]], "1. e4 (1. d4) 1... e5 2. Nf3 *"));
+test("A nested variation comes right after the move that it is an alternative to", () => thenThePgnIs(
+  [...LINE, [4, 2, "f1c4", false], [5, 4, "g8f6", false], [6, 4, "b8c6", false], [7, 6, "d2d3", false], [8, 5, "d2d3", false]],
+  "1. e4 e5 2. Nf3 (2. Bc4 Nf6 (2... Nc6 3. d3) 3. d3) *"));
 test("The evals of a path go from the start position to the node", () => thenThePathEvalsAre(
   [[0, null, "", true, null, 20], [1, 0, "e2e4", true, null, null], [2, 1, "e7e5", true, 42, 30], [3, 1, "c7c5", false, null, 50]], 3, [20, null, 50]));
 test.each([
@@ -54,3 +65,8 @@ test.each([
   [{ correct: 0, checked: 0 }, "\u2013"], [{ correct: 7, checked: 9 }, "7 of 9 correct (78%)"],
   [{ correct: 0, checked: 1 }, "0 of 1 correct (0%)"], [{ correct: 2, checked: 3 }, "2 of 3 correct (67%)"],
 ])("The accuracy %j is shown as %j", (accuracy, text) => thenTheAccuracyTextIs(accuracy, text));
+test.each([[30, "+0.3"], [-120, "-1.2"], [0, "0.0"], [-4, "0.0"], [4, "0.0"], [10000, "+M"], [-10000, "-M"]])(
+  "The eval %i of an engine line is shown as %j", (centipawns, text) => thenTheLineScoreIs(centipawns, text));
+test("The moves of an engine line for White have their numbers", () => thenTheLineMovesAre(["e2e4", "e7e5"], ["Nf3", "Nc6", "Bb5"], "2. Nf3 Nc6 3. Bb5"));
+test("The moves of an engine line for Black start with the number and ...", () => thenTheLineMovesAre(["e2e4"], ["e5", "Nf3", "Nc6"], "1... e5 2. Nf3 Nc6"));
+test("An engine line without moves gives an empty text", () => thenTheLineMovesAre([], [], ""));

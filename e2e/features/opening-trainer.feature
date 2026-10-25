@@ -89,6 +89,23 @@ Feature: Opening trainer
     When the player presses "ArrowRight" in the "Rating" field
     Then the highlighted move is "e4"
 
+  Scenario: You use the app on a phone
+    Given the screen is 390 by 844 pixels
+    And the player starts a line with the rating "1450"
+    When the player plays "e2e4 g1f3"
+    Then the move list is under the board
+    And the page does not scroll sideways
+    When the player clicks "Back"
+    Then the highlighted move is "Nf3"
+    And the board has a "black knight" on "b8"
+    When the player clicks "Start"
+    Then the board has a "white pawn" on "e2"
+    When the player clicks "Forward"
+    Then the highlighted move is "e4"
+    When the player clicks "End"
+    Then the highlighted move is "Nc6"
+    And the board has a "black knight" on "c6"
+
   Scenario: You explore from an old position
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"
@@ -107,6 +124,16 @@ Feature: Opening trainer
     And the player plays "f1b5"
     Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%) (2. Bc4 Nf6 (2... Nc6)) 3. Bb5 a6 (55%)"
 
+  Scenario: You see 3 engine lines in explore mode
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4"
+    Then the status is "your move"
+    And the engine lines are hidden
+    When the player presses "ArrowLeft"
+    Then the engine shows 3 lines from "1... "
+    When the player presses "ArrowDown"
+    Then the engine lines are hidden
+
   Scenario: You delete a variation
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"
@@ -120,6 +147,16 @@ Feature: Opening trainer
     When the player presses "Delete"
     Then the moves are "1. e4 e5 (42%) 2. Nf3 Nc6 (61%)"
     And the highlighted move is "e5"
+
+  Scenario: You copy the PGN
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4 g1f3"
+    And the player presses "ArrowLeft"
+    And the player presses "ArrowLeft"
+    And the player plays "f1c4 g8f6"
+    And the player clicks "Copy PGN"
+    Then the clipboard has "1. e4 e5 2. Nf3 (2. Bc4 Nf6) 2... Nc6 *"
+    And the Copy PGN button shows "Copied"
 
   Scenario: The settings are behind the cog
     Then the settings are open

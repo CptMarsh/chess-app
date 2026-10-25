@@ -3,18 +3,27 @@ import "chessground/assets/chessground.base.css";
 import "chessground/assets/chessground.brown.css";
 import "chessground/assets/chessground.cburnett.css";
 import type { Key } from "chessground/types";
-import { CurrentLine, DeleteVariation, ExploreMoves, type Color, type LineBus, type MoveNode } from "../line/messages.ts";
+import { CurrentLine, DeleteVariation, ExploreMoves, type Color, type LineBus, type MoveNode, type Status } from "../line/messages.ts";
 import type { SettingsStore, Source } from "../settings/settings.ts";
 import type { Trainer } from "../trainer/trainer.ts";
 import { childOf, keptView, nextView, viewOf } from "./navigation.ts";
-import { accuracyText, barEval, barText, evalBarPercent, moveRows, pathEvals, readNumber, statusText, type MoveCell, type VariationLine } from "./text.ts";
+import { accuracyText, barEval, barText, evalBarPercent, lineMoves, lineScore, moveRows, pathEvals, pgnText, readNumber, statusText, type MoveCell, type VariationLine } from "./text.ts";
 import "@fontsource/karla/400.css";
 import "@fontsource/karla/600.css";
 import "@fontsource/jetbrains-mono/600.css";
 import "./darkwood.css";
 import "./trainer.css";
 
+const COPIED_TIME = 1500;
+// The statuses in which you can explore. No answer of the line is pending.
+const EXPLORING: Status[] = ["yourMove", "tryAgain", "ended"];
 const NAVIGATION_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+const NAVIGATION_BUTTONS = [
+  { key: "ArrowUp", label: "Start", icon: "⏮" },
+  { key: "ArrowLeft", label: "Back", icon: "◀" },
+  { key: "ArrowRight", label: "Forward", icon: "▶" },
+  { key: "ArrowDown", label: "End", icon: "⏭" },
+];
 const COG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="3"/>
   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -22,7 +31,7 @@ const COG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke=
 
 type Drop = { line: true } | { line: false; at: number };
 
-export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove">, changeToken: () => void, store: Pick<SettingsStore, "source" | "username" | "save">): () => void {
+export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove" | "examine">, changeToken: () => void, store: Pick<SettingsStore, "source" | "username" | "save">): () => void {
   root.innerHTML = `
     <div id="boardRow">
       <div id="evalBar"><div id="evalBarWhite"></div><span id="evalBarText"></span></div>
@@ -42,10 +51,17 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       </div>
       <div id="moveMenu" popover="manual"><button>Delete from here</button></div>
       <div id="moveList"></div>
+      <div id="navigation">
+        ${NAVIGATION_BUTTONS.map(({ key, label, icon }) => `<button data-key="${key}" aria-label="${label}">${icon}</button>`).join("")}
+      </div>
+      <div id="engineLines" hidden></div>
       <p id="message"></p>
       <p id="accuracy"></p>
       <p id="status"></p>
-      <button id="changeToken">Change token</button>
+      <div id="bottom">
+        <button id="copyPgn">Copy PGN</button>
+        <button id="changeToken">Change token</button>
+      </div>
     </div>
   `;
   const rating = root.querySelector<HTMLInputElement>("#rating")!;
@@ -58,8 +74,10 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   const cog = root.querySelector<HTMLElement>("#cog")!;
   const settings = root.querySelector<HTMLElement>("#settings")!;
   const moveMenu = root.querySelector<HTMLElement>("#moveMenu")!;
+  const copyPgn = root.querySelector<HTMLButtonElement>("#copyPgn")!;
   root.querySelector("#changeToken")!.addEventListener("click", changeToken);
   const moveList = root.querySelector<HTMLElement>("#moveList")!;
+  const engineLines = root.querySelector<HTMLElement>("#engineLines")!;
   const message = root.querySelector<HTMLElement>("#message")!;
   const accuracy = root.querySelector<HTMLElement>("#accuracy")!;
   const evalBar = root.querySelector<HTMLElement>("#evalBar")!;
@@ -110,6 +128,15 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   source.addEventListener("change", saveSettings);
   username.addEventListener("input", saveSettings);
 
+  copyPgn.addEventListener("click", () => {
+    navigator.clipboard.writeText(pgnText(bus.ask(new CurrentLine()).nodes)).then(() => {
+      copyPgn.textContent = "Copied";
+      setTimeout(() => { copyPgn.textContent = "Copy PGN"; }, COPIED_TIME);
+    }, () => {
+      message.textContent = "The browser did not copy the PGN.";
+    });
+  });
+
   settings.addEventListener("beforetoggle", (event) => {
     if ((event as ToggleEvent).newState !== "open") return;
     const place = cog.getBoundingClientRect();
@@ -142,6 +169,13 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     const viewedMove = moveList.querySelector<HTMLElement>(`[data-id="${at}"]`);
     viewedMove?.classList.add("viewed");
     viewedMove?.scrollIntoView({ block: "nearest" });
+    // Explore mode. At the current position in yourMove or tryAgain, the lines would show the answer.
+    const exploring = !lineMove && EXPLORING.includes(line.status);
+    engineLines.hidden = !exploring;
+    if (exploring) {
+      if (node.lines === null) void trainer.examine(at);
+      engineLines.replaceChildren(...engineLineItems(node));
+    }
     message.textContent = line.message;
     const shownEval = barEval(pathEvals(nodes, at));
     evalBar.classList.toggle("black", line.color === "black");
@@ -163,6 +197,11 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     show();
   };
 
+  const navigate = (key: string) => {
+    viewed = nextView(key, viewed, nodes, shownCurrent!);
+    show();
+  };
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") moveMenu.hidePopover();
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
@@ -172,8 +211,12 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     }
     if (!NAVIGATION_KEYS.includes(event.key)) return;
     event.preventDefault();
-    viewed = nextView(event.key, viewed, nodes, shownCurrent!);
-    show();
+    navigate(event.key);
+  });
+
+  root.querySelector("#navigation")!.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLElement>("button");
+    if (button) navigate(button.dataset.key!);
   });
 
   moveList.addEventListener("click", (event) => {
@@ -246,4 +289,18 @@ function variationLine({ tokens }: VariationLine): HTMLElement {
     element.append(move);
   });
   return element;
+}
+
+function engineLineItems({ fen, lines }: MoveNode): HTMLElement[] {
+  if (lines === null) return [Object.assign(document.createElement("p"), { textContent: "The engine is thinking." })];
+  if (lines.length === 0) return [Object.assign(document.createElement("p"), { textContent: "No moves." })];
+  return lines.map(({ eval: value, sans }) => {
+    const element = document.createElement("div");
+    element.className = "engineLine";
+    element.append(
+      Object.assign(document.createElement("span"), { className: "score", textContent: lineScore(value) }),
+      Object.assign(document.createElement("span"), { className: "moves", textContent: lineMoves(fen, sans) }),
+    );
+    return element;
+  });
 }

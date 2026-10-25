@@ -60,7 +60,7 @@ export class JudgeYourMoveHandler implements CommandHandler<JudgeYourMove> {
     yours.eval = value;
     let at = yours.id;
     for (const { lan, san, after } of refutation) {
-      at = state.add({ parent: at, uci: lan, san, fen: after, percent: null, eval: value, main: false });
+      at = state.add({ parent: at, uci: lan, san, fen: after, percent: null, eval: value, lines: null, main: false });
     }
   }
 }

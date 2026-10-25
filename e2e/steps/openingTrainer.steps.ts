@@ -212,3 +212,43 @@ Then("the source is {string} and the username is {string}", async function (this
   assert.equal(shown, source);
   assert.equal(await this.page.getByLabel("Username").inputValue(), username);
 });
+
+Given("the screen is {int} by {int} pixels", async function (this: AppWorld, width: number, height: number) {
+  await this.page.setViewportSize({ width, height });
+});
+
+Then("the move list is under the board", async function (this: AppWorld) {
+  const board = (await this.page.locator("#board").boundingBox())!;
+  const moveList = (await this.page.locator("#moveList").boundingBox())!;
+  assert.ok(moveList.y >= board.y + board.height, `The move list starts at ${moveList.y}. The board ends at ${board.y + board.height}.`);
+});
+
+Then("the page does not scroll sideways", async function (this: AppWorld) {
+  const widths = await this.page.evaluate(() => ({ page: document.documentElement.scrollWidth, screen: document.documentElement.clientWidth }));
+  assert.ok(widths.page <= widths.screen, `The page is ${widths.page} pixels wide. The screen is ${widths.screen} pixels wide.`);
+});
+
+Then("the clipboard has {string}", async function (this: AppWorld, text: string) {
+  assert.equal(await this.page.evaluate(() => navigator.clipboard.readText()), text);
+});
+
+Then("the Copy PGN button shows {string}", async function (this: AppWorld, text: string) {
+  await this.waitForText("#copyPgn", "is", text);
+});
+
+Then("the engine shows {int} lines from {string}", async function (this: AppWorld, count: number, start: string) {
+  await this.page.locator("#engineLines .engineLine").nth(count - 1).waitFor({ timeout: 30_000 });
+  const lines = await this.page.locator("#engineLines .engineLine").evaluateAll((elements) => elements.map((element) => ({
+    score: element.querySelector(".score")?.textContent ?? "",
+    moves: element.querySelector(".moves")?.textContent ?? "",
+  })));
+  assert.equal(lines.length, count);
+  for (const { score, moves } of lines) {
+    assert.match(score, /^([+-](\d+\.\d|M)|0\.0)$/);
+    assert.ok(moves.startsWith(start), `The engine line "${moves}" does not start with "${start}".`);
+  }
+});
+
+Then("the engine lines are hidden", async function (this: AppWorld) {
+  await this.page.locator("#engineLines").waitFor({ state: "hidden", timeout: 30_000 });
+});
