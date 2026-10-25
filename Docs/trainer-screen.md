@@ -1,9 +1,9 @@
 ---
 type: component
 title: Trainer screen
-description: The screen of the opening trainer. It shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the message, the accuracy, the status and the Change token button.
+description: The screen of the opening trainer. It shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the navigation buttons, the message, the accuracy, the status and the Change token button.
 resource: src/ui/trainerView.ts
-tags: [ui, screen, chessground, variations, popover]
+tags: [ui, screen, chessground, variations, popover, mobile]
 ---
 
 # Trainer screen
@@ -23,6 +23,7 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 +----+------------------+  | 1.  e4         e5   42%         |
                            | 2.  Nf3       [Nc6] 61%         |
                            |   (2. Ba6 Nxa6 3. Nf3 d5)       |
+                           | [ ⏮ ] [ ◀ ] [ ▶ ] [ ⏭ ]         |
                            | Bc4 loses 0.8 pawns.            |
                            | Play Bb5 or d4.                 |
                            | Accuracy: 7 of 9 correct (78%)  |
@@ -36,7 +37,7 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | Part | Content |
 |---|---|
 | `#boardRow` | The eval bar and the board, side by side. |
-| `#panel` | The side panel, on the right of `#boardRow`. It is 320 pixels wide and has the height of the board (400 pixels). It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#message`, `#accuracy`, `#status` and `#changeToken`. |
+| `#panel` | The side panel, on the right of `#boardRow`. It is 320 pixels wide and has the height of the board (400 pixels). It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#navigation`, `#message`, `#accuracy`, `#status` and `#changeToken`. |
 | `#top` | The top of the panel: **New line** (`#newLine`) on the left and the cog button (`#cog`) on the right. |
 | `#cog` | The cog button: an inline SVG in `currentColor`, with `aria-label="Settings"` and `popovertarget="settings"`. A click on the cog opens or closes `#settings`. |
 | `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color` and `Moves` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
@@ -45,11 +46,12 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | `Color` field | A select with `White` and `Black`. White is the default. |
 | `Moves` field | The number of your moves in the line. The start value is `10`. |
 | **New line** button | Starts a new line with the rating, the color and the number of moves. |
-| `#board` | The board (`chessground`), 400 × 400 pixels. The side of the board is the color of the line. |
-| `#evalBar` | A vertical bar on the left of the board, in the same row. It is 24 pixels wide and 400 pixels high. Its dark part is `surface-300`. It holds `#evalBarWhite`. It has `flex-direction: column-reverse`, so the light part starts at the bottom. It has the class `black` when the color is Black. Then the direction is `column`, so the light part starts at the top. |
+| `#board` | The board (`chessground`), `--board-size` × `--board-size` (400 × 400 pixels on the desktop, see "Mobile view"). The side of the board is the color of the line. |
+| `#evalBar` | A vertical bar on the left of the board, in the same row. It is 24 pixels wide and has the height of the board. Its dark part is `surface-300`. It holds `#evalBarWhite`. It has `flex-direction: column-reverse`, so the light part starts at the bottom. It has the class `black` when the color is Black. Then the direction is `column`, so the light part starts at the top. |
 | `#evalBarWhite` | The light part of the bar. Its height is 50 % when `shownEval` is `null`, and `evalBarPercent(shownEval)` % in all other conditions. |
 | `#evalBarText` | The eval number on the bar: `barText(shownEval)`, 10 pixels, weight 600. It has the class `whiteEnd` when `shownEval` is `null` or 0 or more, and `blackEnd` when it is less than 0. `whiteEnd` is at the White end of the bar, in dark text (`surface-100`). `blackEnd` is at the Black end, in light text (`ink`). The White end is at the bottom for White, and at the top for Black (`#evalBar.black`). |
 | `#moveList` | The items of `moveRows(nodes)`, in order: rows (`.row`) and variation lines (`.variations`). See "Move list". The list fills the free height of the panel and scrolls. |
+| `#navigation` | 4 buttons under `#moveList`: **Start** (⏮), **Back** (◀), **Forward** (▶) and **End** (⏭). The name of each button is its `aria-label`. See "Navigation". |
 | `#message` | The message of the line, or the rating error. |
 | `#accuracy` | `Accuracy: ` and `accuracyText(accuracy)`. It comes after `#message`. |
 | `#status` | `Status: ` and the status text. |
@@ -69,7 +71,7 @@ The screen is always dark. There is no switch. `trainer.css` sets `color-scheme:
 | The % and the move numbers | `ink-muted` |
 | Highlight of the viewed move | `amber`, with `on-accent` text |
 | **New line** | `oak`, with `on-accent` text in weight 600 and the corners `radius-sm` (2 pixels). When it is disabled, its opacity is 0.5. |
-| Fields, the select and the cog | `surface-300`, with `ink` text, a 1-pixel `line-strong` border and the corners `radius-sm` |
+| Fields, the select, the cog and the navigation buttons | `surface-300`, with `ink` text, a 1-pixel `line-strong` border and the corners `radius-sm` |
 | `#settings` and `#moveMenu` | `surface-300`, with a 1-pixel `line-strong` border, the corners `radius-md` and the padding `space-4` |
 | `.variations` | `ink-muted`, with an indent of `space-4`. Its text wraps. |
 | Focus | A 2-pixel `amber` outline, 2 pixels from the part (`:focus-visible`) |
@@ -123,11 +125,38 @@ The screen keeps `viewed`: a node id, or `null` for the current position. It als
 | ↑ (`ArrowUp`) | The start position. |
 | ↓ (`ArrowDown`) | The current position (`null`). |
 
+The navigation buttons do the same: **Start** is ↑, **Back** is ←, **Forward** is → and **End** is ↓. Each button has its key in `data-key`. A click calls `nextView` with this key.
+
 - A click on a move shows the position of that move.
 - If the result is `current`, `viewed` is `null`.
 - At an old position or in a variation, the board has no arrows, and the message, the accuracy and the status show the current position. **New line** keeps its rule.
 - When `current` changes, `viewed` goes back to `null`. Thus a reply, a take back or a new line shows the current position.
 - When the focus is in an `input` or a `select`, the keys do not navigate. For the 4 arrow keys, the screen stops the default action. Thus ↑ and ↓ do not scroll the page.
+
+## Mobile view
+
+`index.html` has `<meta name="viewport" content="width=device-width, initial-scale=1">`. When the screen is 760 pixels wide or less (`@media (max-width: 760px)`):
+
+- `#app` is a column. `#panel` is under `#boardRow`. Thus the move list is under the board. **New line** and the cog stay at the top of the panel.
+- `--board-size` (on `#app`) is `min(400px, 100vw - 40px)`: the width of the screen without the eval bar (24 pixels) and the margins of the body (2 × 8 pixels). The board and the eval bar get this size. Chessground sees the new size with its `ResizeObserver`.
+- `#panel` has the width of the board row and no fixed height. `#moveList` has a maximum height of 240 pixels and scrolls.
+- `#boardRow` has `overflow-x: clip`, because the file letters of chessground go 24 pixels past the right side of the board. Thus the page does not scroll sideways.
+
+```
++----+------------------+
+|░░░░|                  |
+|▓▓▓▓|      board       |
+|0.3 |                  |
++----+------------------+
+| [ New line ]      [⚙] |
+| 1.  e4     e5   42%   |
+| 2.  Nf3   [Nc6] 61%   |
+| [⏮] [◀] [▶] [⏭]       |
+| Accuracy: ...         |
+| Status: your move     |
+| [Change token]        |
++-----------------------+
+```
 
 ## Delete
 
@@ -189,10 +218,11 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 ## Tests
 
 - `src/ui/text.spec.ts` (Vitest) tests the text functions. `src/ui/navigation.spec.ts` tests the navigation functions.
-- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 12 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and its refutation, one for the navigation, one for an exploration from an old position, one for a delete, one for the cog, and 2 for the token dialog. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` and the fixed refutation `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. The real Stockfish gives the same scores and lines each time, so they do not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. Before each scenario, an init script puts the token `e2e-token` in `localStorage`, when there is no token. Scenarios with the tag `@withoutToken` get no init script. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
+- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 13 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and its refutation, one for the navigation, one for a phone, one for an exploration from an old position, one for a delete, one for the cog, and 2 for the token dialog. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` and the fixed refutation `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. The real Stockfish gives the same scores and lines each time, so they do not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. Before each scenario, an init script puts the token `e2e-token` in `localStorage`, when there is no token. Scenarios with the tag `@withoutToken` get no init script. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
 - 2 scenarios are for the [token dialog](token.md). `@withoutToken` The app asks for your token: the dialog is open with no **Cancel**, Escape does not close it, an empty token shows `Paste your Lichess token.`, the saved token goes to the explorer, and after a reload the dialog stays closed. You change the token: **Change token**, a new token, and the explorer gets it. The step of an explorer table keeps the `Authorization` header of each request in `AppWorld.authorizations`. The step `the explorer got the token {string}` waits until the last header is `Bearer <token>`.
 - The step `the moves are` waits until the text that `AppWorld.waitForMoves` makes from `#moveList` is the text of the step. It reads the rows and the variation lines in order. For each row, it takes the number, then the SAN of each move, with ` (42%)` after a move with a %. A variation line gives its tokens with spaces, but with no space after `(` and before `)`, for example `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. Thus the texts in the feature stay `1. e4 e5 (42%) 2. Nf3`.
 - The steps that use the `Rating`, `Color` and `Moves` fields open the cog first if `#settings` is closed (`AppWorld.openSettings`). The steps `the player right-clicks the move {string}`, `the player clicks {string}` (a button by its name), `the player clicks the cog`, `the settings are open` and `the settings are closed` (`:popover-open`) are for the variations and the cog.
 - The navigation scenario uses the steps `the player presses {string}`, `the player presses {string} in the {string} field`, `the player clicks the move {string}`, `the highlighted move is {string}` and `the board has a {string} on {string}`. `AppWorld.waitForPiece(piece, square)` waits until a `cg-board piece` with the classes of the piece (for example `black knight`) has a `translate` on that square. The square math is the inverse of the clicks of `AppWorld.play`.
+- The phone scenario uses the step `the screen is {int} by {int} pixels` (`page.setViewportSize`), with 390 × 844 pixels. The step `the move list is under the board` checks that the top of `#moveList` is under the bottom of `#board`. The step `the page does not scroll sideways` checks that the `scrollWidth` of the page is not more than its `clientWidth`. The scenario clicks the navigation buttons with `the player clicks {string}`.
 - The explorer answer in the e2e tests is one row of the table in the feature. The row is the full move number of the FEN (field 6), counted from 1. The third column of the row is the % of the move. The answer has the position total 100, so the screen shows this %.
 - `AppWorld.play(move)` also plays a variation move: it clicks the squares on the board, as for a line move. It waits for `Status: your move` or `Status: try again`. It keeps the move list and the status. Then it clicks the 2 squares (for the Black side of the board, the click position is turned around), and waits until the text of `#moveList` or the status changes. Thus the next move does not start before the screen shows the move. (After a mistake, the move list can stay the same, but the status changes.)

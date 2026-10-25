@@ -14,13 +14,14 @@ body {
 }
 
 #app {
+  --board-size: 400px;
   display: flex;
   gap: var(--space-4);
 }
 
 #board {
-  width: 400px;
-  height: 400px;
+  width: var(--board-size);
+  height: var(--board-size);
 }
 
 #boardRow {
@@ -30,7 +31,7 @@ body {
 #evalBar {
   position: relative;
   width: 24px;
-  height: 400px;
+  height: var(--board-size);
   background: var(--surface-300);
   display: flex;
   flex-direction: column-reverse;
@@ -106,6 +107,23 @@ body {
 #newLine:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+#navigation {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+#navigation button {
+  flex: 1;
+  padding: var(--space-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-300);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
 }
 
 #cog,
@@ -204,4 +222,27 @@ body {
 
 .move.viewed .percent {
   color: var(--on-accent);
+}
+
+/* The mobile view. The desktop view needs 24 + 400 + 16 + 320 pixels and the margins of the body. */
+@media (max-width: 760px) {
+  #app {
+    --board-size: min(400px, 100vw - 40px);
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* The file letters of chessground go 24 pixels past the right side of the board. */
+  #boardRow {
+    overflow-x: clip;
+  }
+
+  #panel {
+    width: calc(var(--board-size) + 24px);
+    height: auto;
+  }
+
+  #moveList {
+    max-height: 240px;
+  }
 }

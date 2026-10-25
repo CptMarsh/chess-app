@@ -171,3 +171,18 @@ Then("the status is {string}", async function (this: AppWorld, status: string) {
 Then("the message is {string}", async function (this: AppWorld, message: string) {
   await this.waitForText("#message", "is", message);
 });
+
+Given("the screen is {int} by {int} pixels", async function (this: AppWorld, width: number, height: number) {
+  await this.page.setViewportSize({ width, height });
+});
+
+Then("the move list is under the board", async function (this: AppWorld) {
+  const board = (await this.page.locator("#board").boundingBox())!;
+  const moveList = (await this.page.locator("#moveList").boundingBox())!;
+  assert.ok(moveList.y >= board.y + board.height, `The move list starts at ${moveList.y}. The board ends at ${board.y + board.height}.`);
+});
+
+Then("the page does not scroll sideways", async function (this: AppWorld) {
+  const widths = await this.page.evaluate(() => ({ page: document.documentElement.scrollWidth, screen: document.documentElement.clientWidth }));
+  assert.ok(widths.page <= widths.screen, `The page is ${widths.page} pixels wide. The screen is ${widths.screen} pixels wide.`);
+});

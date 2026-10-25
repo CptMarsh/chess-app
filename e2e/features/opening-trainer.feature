@@ -89,6 +89,23 @@ Feature: Opening trainer
     When the player presses "ArrowRight" in the "Rating" field
     Then the highlighted move is "e4"
 
+  Scenario: You use the app on a phone
+    Given the screen is 390 by 844 pixels
+    And the player starts a line with the rating "1450"
+    When the player plays "e2e4 g1f3"
+    Then the move list is under the board
+    And the page does not scroll sideways
+    When the player clicks "Back"
+    Then the highlighted move is "Nf3"
+    And the board has a "black knight" on "b8"
+    When the player clicks "Start"
+    Then the board has a "white pawn" on "e2"
+    When the player clicks "Forward"
+    Then the highlighted move is "e4"
+    When the player clicks "End"
+    Then the highlighted move is "Nc6"
+    And the board has a "black knight" on "c6"
+
   Scenario: You explore from an old position
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"
