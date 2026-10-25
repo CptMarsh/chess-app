@@ -1,0 +1,23 @@
+/* The tokens of the Darkwood design system that the app uses: https://claude.ai/artifact/Rz6E7erAxpLEZpXRGzKFzX
+   The app does not read the design system. When Darkwood changes, copy the new values here. */
+:root {
+  --surface-100: #16110d;
+  --surface-200: #211913;
+  --surface-300: #2e231a;
+  --line-strong: #85694c;
+  --ink: #efe4d4;
+  --ink-muted: #b5a28a;
+  --oak: #b07a45;
+  --amber: #d9a05b;
+  --on-accent: var(--surface-100);
+
+  --font-body: Karla, system-ui, sans-serif;
+  --font-label: "JetBrains Mono", ui-monospace, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-4: 16px;
+
+  --radius-sm: 2px;
+  --radius-md: 6px;
+}

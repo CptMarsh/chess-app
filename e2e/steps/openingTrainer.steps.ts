@@ -97,6 +97,14 @@ Then("the page background is {string}", async function (this: AppWorld, color: s
   assert.equal(await this.page.evaluate(() => getComputedStyle(document.body).backgroundColor), color);
 });
 
+Then("the font {string} is loaded", async function (this: AppWorld, family: string) {
+  const loaded = await this.page.evaluate(async (wanted) => {
+    await document.fonts.ready;
+    return [...document.fonts].some((font) => font.family.replaceAll('"', "") === wanted && font.status === "loaded");
+  }, family);
+  assert.ok(loaded, `The font ${family} is not loaded.`);
+});
+
 Then("the accuracy is {string}", async function (this: AppWorld, accuracy: string) {
   await this.waitForText("#accuracy", "is", `Accuracy: ${accuracy}`);
 });

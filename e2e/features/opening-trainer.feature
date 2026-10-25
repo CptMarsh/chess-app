@@ -14,7 +14,8 @@ Feature: Opening trainer
     Then the moves are "1. e4 e5 (42%)"
     And the status is "your move"
     And the Moves field shows "10"
-    And the page background is "rgb(48, 46, 43)"
+    And the page background is "rgb(22, 17, 13)"
+    And the font "Karla" is loaded
 
   Scenario: After a mistake, you play an acceptable move
     Given the player starts a line with the rating "1450"

@@ -40,28 +40,37 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | `Moves` field | The number of your moves in the line. The start value is `10`. |
 | **New line** button | Starts a new line with the rating, the color and the number of moves. |
 | `#board` | The board (`chessground`), 400 × 400 pixels. The side of the board is the color of the line. |
-| `#evalBar` | A vertical bar on the left of the board, in the same row. It is 24 pixels wide and 400 pixels high, and it is dark. It holds `#evalBarWhite`. It has `flex-direction: column-reverse`, so the light part starts at the bottom. It has the class `black` when the color is Black. Then the direction is `column`, so the light part starts at the top. |
+| `#evalBar` | A vertical bar on the left of the board, in the same row. It is 24 pixels wide and 400 pixels high. Its dark part is `surface-300`. It holds `#evalBarWhite`. It has `flex-direction: column-reverse`, so the light part starts at the bottom. It has the class `black` when the color is Black. Then the direction is `column`, so the light part starts at the top. |
 | `#evalBarWhite` | The light part of the bar. Its height is 50 % when `shownEval` is `null`, and `evalBarPercent(shownEval)` % in all other conditions. |
-| `#evalBarText` | The eval number on the bar: `barText(shownEval)`, 10 pixels, bold. It has the class `whiteEnd` when `shownEval` is `null` or 0 or more, and `blackEnd` when it is less than 0. `whiteEnd` is at the White end of the bar, in dark text (`#333`). `blackEnd` is at the Black end, in light text (`#eee`). The White end is at the bottom for White, and at the top for Black (`#evalBar.black`). |
-| `#moveList` | One row (`.row`) for each move number, from `moveRows(moves)`. A row has the number (`.number`, for example `1.`), the White move and the Black move. Each move is a `.move` with `data-index` (the index in `moves`, from 0). It holds the SAN (`.san`) and the % (`.percent`, for example `42%`, or empty for your moves) in small grey text (`#989795`). The viewed move has the class `viewed` and the background `#484644`. At the current position, this is the last move. At the start position, no move has the class. The row of the viewed move scrolls into view. The list fills the free height of the panel and scrolls. |
+| `#evalBarText` | The eval number on the bar: `barText(shownEval)`, 10 pixels, weight 600. It has the class `whiteEnd` when `shownEval` is `null` or 0 or more, and `blackEnd` when it is less than 0. `whiteEnd` is at the White end of the bar, in dark text (`surface-100`). `blackEnd` is at the Black end, in light text (`ink`). The White end is at the bottom for White, and at the top for Black (`#evalBar.black`). |
+| `#moveList` | One row (`.row`) for each move number, from `moveRows(moves)`. A row has the number (`.number`, for example `1.`, in the `label` style), the White move and the Black move. Each move is a `.move` with `data-index` (the index in `moves`, from 0). It holds the SAN (`.san`) and the % (`.percent`, for example `42%`, or empty for your moves) in small text (`ink-muted`). The viewed move has the class `viewed`, the background `amber` and the text `on-accent`. At the current position, this is the last move. At the start position, no move has the class. The row of the viewed move scrolls into view. The list fills the free height of the panel and scrolls. |
 | `#message` | The message of the line, or the rating error. |
 | `#accuracy` | `Accuracy: ` and `accuracyText(accuracy)`. It comes after `#message`. |
 | `#status` | `Status: ` and the status text. |
 
-## Dark mode
+## Darkwood style
 
-The screen is always dark. There is no switch. `trainer.css` sets `color-scheme: dark` on `html`, so the fields and the select are also dark.
+The screen uses the Darkwood design system: https://claude.ai/artifact/Rz6E7erAxpLEZpXRGzKFzX. The app does not read the design system. `src/ui/darkwood.css` has a copy of the tokens that the app uses, as CSS variables on `:root`. `trainer.css` uses only these variables. When Darkwood changes, copy the new values into `darkwood.css`.
 
-| Part | Color |
+The screen is always dark. There is no switch. `trainer.css` sets `color-scheme: dark` on `html`.
+
+| Part | Token |
 |---|---|
-| Page (`body`) | `#302E2B` |
-| `#panel` | `#262522` |
-| Text | `#FFFFFF` |
-| Grey text (the %) | `#989795` |
-| Highlight of the viewed move | `#484644` |
-| **New line** | `#81B64C`, with white bold text. When it is disabled, its opacity is 0.5. |
+| Page (`body`) | `surface-100` (`#16110d`) |
+| `#panel` | `surface-200`, with the corners `radius-md` (6 pixels) |
+| Text | `ink` |
+| The % and the move numbers | `ink-muted` |
+| Highlight of the viewed move | `amber`, with `on-accent` text |
+| **New line** | `oak`, with `on-accent` text in weight 600 and the corners `radius-sm` (2 pixels). When it is disabled, its opacity is 0.5. |
+| Fields and the select | `surface-300`, with `ink` text, a 1-pixel `line-strong` border and the corners `radius-sm` |
+| Focus | A 2-pixel `amber` outline, 2 pixels from the part (`:focus-visible`) |
+| Eval bar | `ink` for the White part, `surface-300` for the Black part |
 
-The board (`chessground.brown.css`) and the eval bar keep their colors. In `#settings`, the fields are 56 pixels wide, so the 3 fields and **New line** fit on 2 lines.
+The text is in the `body` style: Karla, 15 pixels, line height 24 pixels. The move numbers are in the `label` style: JetBrains Mono, 12 pixels, weight 600, letter spacing 0.08em. The app does not use Fraunces, because the screen has no headings. The spaces are `space-1` (4 pixels), `space-2` (8 pixels) and `space-4` (16 pixels).
+
+The fonts come from the npm packages `@fontsource/karla` (weights 400 and 600) and `@fontsource/jetbrains-mono` (weight 600). Vite puts the font files in the build, so the app sends no font request to other sites, and the fonts also work offline.
+
+The board (`chessground.brown.css`) keeps its colors. In `#settings`, the fields are 56 pixels wide, so the 3 fields and **New line** fit on 2 lines.
 
 ## The show function
 
@@ -144,12 +153,12 @@ When you drop a piece, the screen sends the move in UCI to `trainer.yourMove`, f
 1. Put your Lichess token in `.env.local`. See [Lichess explorer](lichess-explorer.md).
 2. Run `npm run dev`.
 
-`chessground` 9.2.1 is GPL-3.0-or-later licensed. The screen uses its 3 style sheets: `chessground.base.css`, `chessground.brown.css` and `chessground.cburnett.css`.
+`chessground` 9.2.1 is GPL-3.0-or-later licensed. The screen uses its 3 style sheets: `chessground.base.css`, `chessground.brown.css` and `chessground.cburnett.css`. The fonts Karla and JetBrains Mono are OFL-1.1 licensed.
 
 ## Tests
 
 - `src/ui/text.spec.ts` (Vitest) tests the text functions. `src/ui/navigation.spec.ts` tests the navigation functions.
-- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 7 scenarios. The first scenario also checks that the page background is `rgb(48, 46, 43)`. One scenario is for Black, one for the number of moves, one for a mistake and one for the navigation. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` The real Stockfish gives the same scores each time, so this message does not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. The test server sets `VITE_LICHESS_TOKEN` to `e2e-token`. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
+- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 7 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and one for the navigation. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` The real Stockfish gives the same scores each time, so this message does not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. The test server sets `VITE_LICHESS_TOKEN` to `e2e-token`. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
 - The step `the moves are` waits until the text that `AppWorld.waitForMoves` makes from `#moveList` is the text of the step. For each row, it takes the number, then the SAN of each move, with ` (42%)` after a move with a %. Thus the texts in the feature stay `1. e4 e5 (42%) 2. Nf3`.
 - The navigation scenario uses the steps `the player presses {string}`, `the player presses {string} in the {string} field`, `the player clicks the move {string}`, `the highlighted move is {string}` and `the board has a {string} on {string}`. `AppWorld.waitForPiece(piece, square)` waits until a `cg-board piece` with the classes of the piece (for example `black knight`) has a `translate` on that square. The square math is the inverse of the clicks of `AppWorld.play`.
 - The explorer answer in the e2e tests is one row of the table in the feature. The row is the full move number of the FEN (field 6), counted from 1. The third column of the row is the % of the move. The answer has the position total 100, so the screen shows this %.

@@ -7,6 +7,10 @@ import { CurrentLine, type Color, type LineBus } from "../line/messages.ts";
 import type { Trainer } from "../trainer/trainer.ts";
 import { keptView, nextView, viewOf } from "./navigation.ts";
 import { accuracyText, barEval, barText, evalBarPercent, moveRows, readNumber, statusText, type MoveCell } from "./text.ts";
+import "@fontsource/karla/400.css";
+import "@fontsource/karla/600.css";
+import "@fontsource/jetbrains-mono/600.css";
+import "./darkwood.css";
 import "./trainer.css";
 
 const NAVIGATION_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
