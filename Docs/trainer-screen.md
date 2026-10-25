@@ -1,7 +1,7 @@
 ---
 type: component
 title: Trainer screen
-description: The screen of the opening trainer. It shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the message, the accuracy, the status and the Change token button.
+description: The screen of the opening trainer. It shows New line and the cog with the rating, color, moves, source and username fields, the board, the eval bar with the eval number, the move list with its variations, the message, the accuracy, the status and the Change token button.
 resource: src/ui/trainerView.ts
 tags: [ui, screen, chessground, variations, popover]
 ---
@@ -10,7 +10,7 @@ tags: [ui, screen, chessground, variations, popover]
 
 The screen shows the opening trainer in the browser. It holds no chess rules. It gets all its data from the `CurrentLine` and `ExploreMoves` queries. `src/ui/` does not use `async` or `await`.
 
-`mountTrainer(root, bus, trainer, changeToken)` adds the parts of the screen to `root`. It gives the `show` function. The trainer calls `show()` after each command.
+`mountTrainer(root, bus, trainer, changeToken, settings)` adds the parts of the screen to `root`. It gives the `show` function. The trainer calls `show()` after each command.
 
 ```
 +----+------------------+  +---------------------------------+
@@ -19,6 +19,7 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 |▓▓▓▓|      board       |  |               | Rating  [1450] ||
 |▓▓▓▓|                  |  |               | Color [White v]||
 |▓▓▓▓|                  |  |               | Moves     [10] ||
+|▓▓▓▓|                  |  |               | Source[Lich v] ||
 |0.3 |                  |  |               +----------------+|
 +----+------------------+  | 1.  e4         e5   42%         |
                            | 2.  Nf3       [Nc6] 61%         |
@@ -39,10 +40,12 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | `#panel` | The side panel, on the right of `#boardRow`. It is 320 pixels wide and has the height of the board (400 pixels). It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#message`, `#accuracy`, `#status` and `#changeToken`. |
 | `#top` | The top of the panel: **New line** (`#newLine`) on the left and the cog button (`#cog`) on the right. |
 | `#cog` | The cog button: an inline SVG in `currentColor`, with `aria-label="Settings"` and `popovertarget="settings"`. A click on the cog opens or closes `#settings`. |
-| `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color` and `Moves` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
+| `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color`, `Moves`, `Source` and `Username` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
 | `#moveMenu` | The menu of a variation move: a popover with one button, **Delete from here**. See "Delete". |
 | `Rating` field | The rating that you type before each line. |
-| `Color` field | A select with `White` and `Black`. White is the default. |
+| `Color` field (`#color`) | A select with `White` and `Black`. White is the default. |
+| `Source` field (`#source`) | A select with `Lichess` (`lichess`) and `chess.com` (`chessCom`). It is the source of the replies and their %. It starts with `settings.source()`. A change calls `settings.save(source, username)`. See [Settings store](settings.md). |
+| `Username` field (`#username`) | Your chess.com username. It starts with `settings.username()`. Each input calls `settings.save(source, username)`. Its label (`#usernameLabel`) is hidden when the source is Lichess. |
 | `Moves` field | The number of your moves in the line. The start value is `10`. |
 | **New line** button | Starts a new line with the rating, the color and the number of moves. |
 | `#board` | The board (`chessground`), 400 × 400 pixels. The side of the board is the color of the line. |
@@ -79,7 +82,7 @@ The text is in the `body` style: Karla, 15 pixels, line height 24 pixels. The mo
 
 The fonts come from the npm packages `@fontsource/karla` (weights 400 and 600) and `@fontsource/jetbrains-mono` (weight 600). Vite puts the font files in the build, so the app sends no font request to other sites, and the fonts also work offline.
 
-The board (`chessground.brown.css`) keeps its colors. In `#settings`, the inputs are 56 pixels wide.
+The board (`chessground.brown.css`) keeps its colors. In `#settings`, the inputs are 56 pixels wide, and `#username` is 120 pixels wide.
 
 ## Move list
 
@@ -174,10 +177,10 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 
 1. It makes the `LineBus` and calls `attachLine`.
 2. It makes a `StockfishEngine` with `` new Worker(`${import.meta.env.BASE_URL}stockfish/stockfish-19-lite-single.js`) ``.
-3. It makes a `TokenStore` with `() => localStorage`, and a `LichessExplorer` with `() => tokens.read()`.
+3. It makes a `TokenStore` and a `SettingsStore` with `() => localStorage`. It makes a `SourceExplorer` with `() => settings.source()`, a `LichessExplorer` with `() => tokens.read()` and a `ChessComExplorer` with `() => settings.username()`.
 4. It makes the `Trainer` with a `show` function that calls the `show` function of the screen.
-5. It calls `mountTokenDialog(document.body, tokens)`. It gives its `open` function to `mountTrainer` as `changeToken`. Then it calls `show()`.
-6. If `tokens.read()` is `""`, it opens the token dialog.
+5. It calls `mountTokenDialog(document.body, tokens)`. It gives its `open` function to `mountTrainer` as `changeToken`. It gives the settings store to `mountTrainer` as `settings`. Then it calls `show()`.
+6. If `settings.source()` is `"lichess"` and `tokens.read()` is `""`, it opens the token dialog.
 
 ## Setup
 

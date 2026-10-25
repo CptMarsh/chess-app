@@ -171,3 +171,44 @@ Then("the status is {string}", async function (this: AppWorld, status: string) {
 Then("the message is {string}", async function (this: AppWorld, message: string) {
   await this.waitForText("#message", "is", message);
 });
+
+const CHESS_COM = "https://api.chess.com/**";
+
+// Each row is your color, the rating of your opponent and the SAN moves. All games are blitz games of this month.
+Given("the player has these chess.com games:", async function (this: AppWorld, table: DataTable) {
+  const today = new Date();
+  const month = `https://api.chess.com/pub/player/myname/games/${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const games = table.raw().map(([you, rating, moves]) => {
+    const me = { username: "MyName", rating: 1500 };
+    const them = { username: "Opponent", rating: Number(rating) };
+    const pgn = moves.split(" ").map((san, index) => (index % 2 === 0 ? `${index / 2 + 1}. ${san}` : san)).join(" ") + " *";
+    return { pgn, rules: "chess", time_class: "blitz", white: you === "white" ? me : them, black: you === "white" ? them : me };
+  });
+  await this.context.route(CHESS_COM, (route) => {
+    const url = route.request().url();
+    if (url.endsWith("/games/archives")) return route.fulfill({ headers: ANY_ORIGIN, json: { archives: [month] } });
+    if (url === month) return route.fulfill({ headers: ANY_ORIGIN, json: { games } });
+    return route.fulfill({ status: 404, headers: ANY_ORIGIN, json: {} });
+  });
+});
+
+Given("chess.com has no player {string}", async function (this: AppWorld, _username: string) {
+  await this.context.route(CHESS_COM, (route) => route.fulfill({ status: 404, headers: ANY_ORIGIN, json: {} }));
+});
+
+Given("the player chooses the source {string} and the username {string}", async function (this: AppWorld, source: string, username: string) {
+  await this.openSettings();
+  await this.page.getByLabel("Source").selectOption({ label: source });
+  await this.page.getByLabel("Username").fill(username);
+});
+
+Given("the Lichess token is removed", async function (this: AppWorld) {
+  await this.page.evaluate(() => localStorage.removeItem("lichessToken"));
+});
+
+Then("the source is {string} and the username is {string}", async function (this: AppWorld, source: string, username: string) {
+  await this.openSettings();
+  const shown = await this.page.getByLabel("Source").evaluate((select: HTMLSelectElement) => select.selectedOptions[0].textContent);
+  assert.equal(shown, source);
+  assert.equal(await this.page.getByLabel("Username").inputValue(), username);
+});

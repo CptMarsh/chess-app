@@ -33,9 +33,8 @@ Success: you practise against the moves that your real opponents play against yo
 ## Facts that we must check
 The sandbox of this session could not reach `api.chess.com`. Before the plan, check these facts in a browser and write them here:
 - The chess.com public API answers a request from the origin of the app (CORS). If it does not, this spec cannot work in the browser. Then we decide again.
-- `GET https://api.chess.com/pub/player/{username}/games/{YYYY}/{MM}` gives `{ games: [...] }`. Each game has `pgn`, `rules`, `time_class`, and `white` and `black` with `username` and `rating`.
-- A month without games gives `{ games: [] }` or 404.
-- An unknown username gives 404.
+- `GET https://api.chess.com/pub/player/{username}/games/archives` gives `{ archives: [...] }`: the addresses of the months with games. An unknown username gives 404.
+- An address of the archives gives `{ games: [...] }`. Each game has `pgn`, `rules`, `time_class`, and `white` and `black` with `username` and `rating`.
 - chess.com asks for requests one at a time. Parallel requests can give 429.
 
 ## Architecture
@@ -66,7 +65,7 @@ The trainer stays the one async unit, and it does not change. It uses the `Explo
 
 #### Download
 1. If there are no games in memory for this username, the explorer downloads them. It changes the username to lower case.
-2. It sends `GET https://api.chess.com/pub/player/{username}/games/{YYYY}/{MM}` for each of the 12 months, from the oldest to the newest, one request at a time. `MM` has 2 digits.
+2. It sends `GET https://api.chess.com/pub/player/{username}/games/archives`. The answer has the addresses of the months with games. Then it sends a `GET` for each address of the current month and the 11 months before it, from the oldest to the newest, one request at a time. Thus a month without games costs no request.
 3. It keeps only the games with `rules` `chess` and a `time_class` of `blitz`, `rapid` or `daily`.
 4. For each game, it finds your color: the side whose `username` in lower case is your username. It keeps your color and the rating of your opponent.
 5. It replays the `pgn` with `chess.js`. It keeps the first 40 half-moves. For each half-move of your opponent, it keeps the key of the position before the move, and the `uci` and the `san` of the move.
@@ -82,7 +81,7 @@ The key of a position is the first 4 fields of the FEN from `chess.js`: the piec
 3. In these games, it counts each move of your opponent at the key of `fen`. One game counts one time for a position, also when the position comes two times.
 4. `games` of a move is its count. `total` is the sum of the counts at this key.
 5. `percent` is `Math.round(games * 100 / total)`.
-6. It gives the 5 moves with the most games, the most games first. With equal games, the order of `san` decides.
+6. It gives the 5 moves with the most games, the most games first. With equal games, the code-point order of `san` decides.
 
 When no game has this position, the list is empty. Then the line ends with `No games at your level after this position.`, as now.
 
@@ -92,8 +91,8 @@ When no game has this position, the list is empty. Then the line ends with `No g
 | Problem | Message |
 |---|---|
 | The username is empty. | `Type your chess.com username in the settings.` |
-| chess.com gives 404 for the newest month. | `chess.com has no player {username}.` |
-| chess.com gives 404 for an older month. | No error. The month has no games. |
+| The archives give 404. | `chess.com has no player {username}.` |
+| A month gives 404. | No error. The month has no games. |
 | chess.com gives 429. | `chess.com got too many requests. Wait one minute, then start a new line.` |
 | chess.com gives a different status. | `chess.com did not answer (status 503).` (The number is the status.) |
 | The request fails. | `chess.com did not answer (network error).` |
@@ -119,7 +118,7 @@ The explorer does not try again.
 - The token dialog opens at the start when `settings.source()` is `"lichess"` and `tokens.read()` is `""`. If you then choose Lichess without a token, the Lichess explorer gives `Save your Lichess token first. Click Change token.`, as now.
 
 ## Notes
-- The first reply with chess.com waits for 12 requests. The status says `Waiting for a reply`, as now. We decide about a progress text later.
+- The first reply with chess.com waits for 1 request for the archives and up to 12 requests for the months. The status says `Waiting for a reply`, as now. We decide about a progress text later.
 - Your games against opponents near your rating give fewer games than Lichess. Thus lines with chess.com end sooner.
 
 ## Tests
@@ -129,7 +128,7 @@ Each spec file has a `*.steps.ts` file, as now. We write each case red, then gre
 | Spec | Cases |
 |---|---|
 | `src/settings/settings.spec.ts` | `source` and `username` from the storage. A missing or wrong source gives `lichess`. `save` removes the spaces and writes. A blocked `localStorage` and a refused write. |
-| `src/explorer/chessCom.spec.ts` | The 12 addresses, from the oldest month to the newest, in lower case, one at a time, also across a new year. Only `chess` games of `blitz`, `rapid` and `daily`. Your color from the username in any case. Replies for White to move and for Black to move. The rating margin at -150 and +150, and outside it. A transposition counts. A position two times in one game counts one time. The 5 moves with the most games, and the order. `percent`. Castling in the standard form. Only the first 40 half-moves. A bad `pgn` keeps the moves before the bad move. The download happens one time for a username, and again for a new username. A failed download is not kept. Each error of the table. No request for an empty username. |
+| `src/explorer/chessCom.spec.ts` | The archives, then the months of the last 12 months from the archives, from the oldest to the newest, in lower case, one at a time, also across a new year. A month with 404. Only `chess` games of `blitz`, `rapid` and `daily`. Your color from the username in any case. Replies for White to move and for Black to move. The rating margin at -150 and +150, and outside it. A transposition counts. A position two times in one game counts one time. The 5 moves with the most games, and the order. `percent`. Castling in the standard form. Only the first 40 half-moves. A bad `pgn` keeps the moves before the bad move. The download happens one time for a username, and again for a new username. A failed download is not kept. Each error of the table. No request for an empty username. |
 | `src/explorer/source.spec.ts` | Each source calls its explorer. A new source is used from the next request. |
 
 ### E2E (Cucumber and Playwright)

@@ -10,7 +10,7 @@ tags: [trainer, async, variations]
 
 The trainer does the async steps of a line in the correct order. It holds no chess rules. It reads the status from the `CurrentLine` query. Only `src/trainer/` uses `await`.
 
-`new Trainer(bus, engine, explorer, show)` gets a `LineBus`, an engine, an explorer and a `show` function. The engine is `StockfishEngine` (`analyse` gives `Candidate[]`, and `score` gives a `Candidate`). The explorer is `LichessExplorer`. The trainer calls `show()` after each command.
+`new Trainer(bus, engine, explorer, show)` gets a `LineBus`, an engine, an explorer and a `show` function. The engine is `StockfishEngine` (`analyse` gives `Candidate[]`, and `score` gives a `Candidate`). The explorer is a `SourceExplorer`. It asks the `LichessExplorer` or the `ChessComExplorer`, from the source in the settings. See [chess.com explorer and source explorer](chess-com-explorer.md). The trainer calls `show()` after each command.
 
 ## Methods
 

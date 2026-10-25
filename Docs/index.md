@@ -12,11 +12,13 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Command and query bus](command-query-bus.md): the router that sends each command and each query to its handler.
 - [Line](line.md): the rules of one opening line and its move tree with variations, as commands and queries on the bus.
 - [Lichess explorer](lichess-explorer.md): the adapter that gets the most common replies of a position from Lichess.
+- [chess.com explorer and source explorer](chess-com-explorer.md): the adapter that gets the replies of a position from your own chess.com games, and the adapter that sends each request to the explorer of the chosen source.
+- [Settings store](settings.md): the adapter that keeps the source of the replies and your chess.com username in the browser.
 - [Token store and token dialog](token.md): the adapter that keeps your Lichess token in the browser, and the dialog that asks you for it.
 - [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker, one request at a time.
 - [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
 - [Deployment](deployment.md): the build, the base path `/chess-app/` and the workflow that publishes the app on GitHub Pages.
-- [Trainer screen](trainer-screen.md): the screen that shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the message, the accuracy, the status and the Change token button. It is dark, in the Darkwood style.
+- [Trainer screen](trainer-screen.md): the screen that shows New line and the cog with the rating, color, moves, source and username fields, the board, the eval bar with the eval number, the move list with its variations, the message, the accuracy, the status and the Change token button. It is dark, in the Darkwood style.
 
 ## Specs
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer.

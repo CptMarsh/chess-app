@@ -4,6 +4,7 @@ import "chessground/assets/chessground.brown.css";
 import "chessground/assets/chessground.cburnett.css";
 import type { Key } from "chessground/types";
 import { CurrentLine, DeleteVariation, ExploreMoves, type Color, type LineBus, type MoveNode } from "../line/messages.ts";
+import type { SettingsStore, Source } from "../settings/settings.ts";
 import type { Trainer } from "../trainer/trainer.ts";
 import { childOf, keptView, nextView, viewOf } from "./navigation.ts";
 import { accuracyText, barEval, barText, evalBarPercent, moveRows, pathEvals, readNumber, statusText, type MoveCell, type VariationLine } from "./text.ts";
@@ -21,7 +22,7 @@ const COG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke=
 
 type Drop = { line: true } | { line: false; at: number };
 
-export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove">, changeToken: () => void): () => void {
+export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove">, changeToken: () => void, store: Pick<SettingsStore, "source" | "username" | "save">): () => void {
   root.innerHTML = `
     <div id="boardRow">
       <div id="evalBar"><div id="evalBarWhite"></div><span id="evalBarText"></span></div>
@@ -34,8 +35,10 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       </div>
       <div id="settings" popover>
         <label>Rating <input id="rating"></label>
-        <label>Color <select><option value="white">White</option><option value="black">Black</option></select></label>
+        <label>Color <select id="color"><option value="white">White</option><option value="black">Black</option></select></label>
         <label>Moves <input id="movesField" value="10"></label>
+        <label>Source <select id="source"><option value="lichess">Lichess</option><option value="chessCom">chess.com</option></select></label>
+        <label id="usernameLabel">Username <input id="username"></label>
       </div>
       <div id="moveMenu" popover="manual"><button>Delete from here</button></div>
       <div id="moveList"></div>
@@ -47,7 +50,10 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   `;
   const rating = root.querySelector<HTMLInputElement>("#rating")!;
   const movesField = root.querySelector<HTMLInputElement>("#movesField")!;
-  const color = root.querySelector("select")!;
+  const color = root.querySelector<HTMLSelectElement>("#color")!;
+  const source = root.querySelector<HTMLSelectElement>("#source")!;
+  const username = root.querySelector<HTMLInputElement>("#username")!;
+  const usernameLabel = root.querySelector<HTMLElement>("#usernameLabel")!;
   const newLine = root.querySelector<HTMLButtonElement>("#newLine")!;
   const cog = root.querySelector<HTMLElement>("#cog")!;
   const settings = root.querySelector<HTMLElement>("#settings")!;
@@ -93,6 +99,16 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       message.textContent = error.message;
     });
   });
+
+  source.value = store.source();
+  username.value = store.username();
+  usernameLabel.hidden = source.value !== "chessCom";
+  const saveSettings = () => {
+    store.save(source.value as Source, username.value);
+    usernameLabel.hidden = source.value !== "chessCom";
+  };
+  source.addEventListener("change", saveSettings);
+  username.addEventListener("input", saveSettings);
 
   settings.addEventListener("beforetoggle", (event) => {
     if ((event as ToggleEvent).newState !== "open") return;
