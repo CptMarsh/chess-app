@@ -9,7 +9,7 @@ import { mountTrainer } from "./ui/trainerView.ts";
 
 const bus = new LineBus();
 attachLine(bus);
-const engine = new StockfishEngine(new Worker("/stockfish/stockfish-19-lite-single.js"));
+const engine = new StockfishEngine(new Worker(`${import.meta.env.BASE_URL}stockfish/stockfish-19-lite-single.js`));
 const tokens = new TokenStore(() => localStorage);
 const explorer = new LichessExplorer(() => tokens.read());
 const view = { show: () => {} };

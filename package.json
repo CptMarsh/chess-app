@@ -8,6 +8,7 @@
   "scripts": {
     "postinstall": "node scripts/copy-stockfish.js",
     "dev": "vite",
+    "build": "vite build",
     "test": "vitest run",
     "e2e": "cucumber-js",
     "typecheck": "tsc --noEmit"

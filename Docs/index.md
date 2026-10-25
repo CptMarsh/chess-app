@@ -15,6 +15,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Token store and token dialog](token.md): the adapter that keeps your Lichess token in the browser, and the dialog that asks you for it.
 - [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker.
 - [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
+- [Deployment](deployment.md): the build, the base path `/chess-app/` and the workflow that publishes the app on GitHub Pages.
 - [Trainer screen](trainer-screen.md): the screen that shows the rating, color and moves fields, the board, the eval bar with the eval number, the move list, the message, the accuracy, the status and the Change token button. It is dark, in the Darkwood style.
 
 ## Specs
@@ -22,6 +23,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Eval, accuracy, line length and Black](superpowers/specs/2026-10-24-eval-accuracy-length-black-design.md): the % of each opponent move, the eval and the eval bar, your accuracy, the line length, and Black as your color.
 - [Try again, move list, eval number and dark mode](superpowers/specs/2026-10-24-try-again-move-list-dark-design.md): a maximum of 3 acceptable moves after a mistake, the move list at the side of the board with the arrow keys, the number on the eval bar, and dark mode.
 - [Ask for the Lichess token](superpowers/specs/2026-10-25-lichess-token-design.md): the token dialog. The app keeps the token in the browser, so the build holds no token.
+- [Publish on GitHub Pages](superpowers/specs/2026-10-25-github-pages-design.md): each push to `trunk` tests, builds and publishes the app.
 
 ## Process
 We use spec-driven development with a red-green-refactor loop. The unit specs are in `src/**/*.spec.ts` (Vitest). The e2e scenarios are in `e2e/features/` (Cucumber.js and Playwright).

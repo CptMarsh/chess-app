@@ -145,7 +145,7 @@ When you drop a piece, the screen sends the move in UCI to `trainer.yourMove`, f
 `src/main.ts` connects the units:
 
 1. It makes the `LineBus` and calls `attachLine`.
-2. It makes a `StockfishEngine` with `new Worker("/stockfish/stockfish-19-lite-single.js")`.
+2. It makes a `StockfishEngine` with `` new Worker(`${import.meta.env.BASE_URL}stockfish/stockfish-19-lite-single.js`) ``.
 3. It makes a `TokenStore` with `() => localStorage`, and a `LichessExplorer` with `() => tokens.read()`.
 4. It makes the `Trainer` with a `show` function that calls the `show` function of the screen.
 5. It calls `mountTokenDialog(document.body, tokens)`. It gives its `open` function to `mountTrainer` as `changeToken`. Then it calls `show()`.
