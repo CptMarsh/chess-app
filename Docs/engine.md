@@ -12,7 +12,7 @@ The engine is an adapter. It does not use the bus. It does not know the rules of
 
 `new StockfishEngine(worker)` gets the worker. The worker type is `EngineWorker`: `Pick<Worker, "postMessage" | "addEventListener">`. The constructor adds its `message` and `error` listeners, then sends `uci`. Tests give a fake worker.
 
-The app gives it `new Worker("/stockfish/stockfish-19-lite-single.js")`.
+The app gives it `` new Worker(`${import.meta.env.BASE_URL}stockfish/stockfish-19-lite-single.js`) ``. `BASE_URL` is the base path (`/chess-app/`). An absolute path does not work under the base path. See [Deployment](deployment.md).
 
 The engine has 2 calls. Both give a promise. The scores are in centipawns from the side to move.
 

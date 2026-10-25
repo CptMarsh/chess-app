@@ -21,7 +21,7 @@ const COG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke=
 
 type Drop = { line: true } | { line: false; at: number };
 
-export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove">): () => void {
+export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove">, changeToken: () => void): () => void {
   root.innerHTML = `
     <div id="boardRow">
       <div id="evalBar"><div id="evalBarWhite"></div><span id="evalBarText"></span></div>
@@ -42,6 +42,7 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       <p id="message"></p>
       <p id="accuracy"></p>
       <p id="status"></p>
+      <button id="changeToken">Change token</button>
     </div>
   `;
   const rating = root.querySelector<HTMLInputElement>("#rating")!;
@@ -51,6 +52,7 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   const cog = root.querySelector<HTMLElement>("#cog")!;
   const settings = root.querySelector<HTMLElement>("#settings")!;
   const moveMenu = root.querySelector<HTMLElement>("#moveMenu")!;
+  root.querySelector("#changeToken")!.addEventListener("click", changeToken);
   const moveList = root.querySelector<HTMLElement>("#moveList")!;
   const message = root.querySelector<HTMLElement>("#message")!;
   const accuracy = root.querySelector<HTMLElement>("#accuracy")!;

@@ -13,6 +13,7 @@ Given("the explorer replies in turn:", async function (this: AppWorld, table: Da
     if (request.method() === "OPTIONS") {
       return route.fulfill({ status: 204, headers: { ...ANY_ORIGIN, "access-control-allow-headers": "authorization" } });
     }
+    this.authorizations.push(request.headers().authorization ?? "");
     const fullmove = Number(new URL(request.url()).searchParams.get("fen")!.split(" ")[5]);
     const [uci, san, percent] = rows[fullmove - 1];
     return route.fulfill({ headers: ANY_ORIGIN, json: { white: 100, draws: 0, black: 0, moves: [{ uci, san, white: Number(percent), draws: 0, black: 0 }] } });
@@ -27,6 +28,35 @@ Given("the explorer refuses the token", async function (this: AppWorld) {
 
 Given("the player opens the app", async function (this: AppWorld) {
   await this.openApp();
+});
+
+When("the player reloads the app", async function (this: AppWorld) {
+  await this.page.reload();
+});
+
+When("the player saves the token {string}", async function (this: AppWorld, token: string) {
+  await this.page.getByLabel("Lichess token").fill(token);
+  await this.page.getByRole("button", { name: "Save" }).click();
+});
+
+Then("the token dialog is open", async function (this: AppWorld) {
+  await this.page.waitForSelector("#tokenDialog[open]", { timeout: 30_000 });
+});
+
+Then("the token dialog is closed", async function (this: AppWorld) {
+  await this.page.waitForSelector("#tokenDialog:not([open])", { state: "attached", timeout: 30_000 });
+});
+
+Then("the token dialog has no Cancel button", async function (this: AppWorld) {
+  assert.equal(await this.page.locator("#tokenDialog").getByRole("button", { name: "Cancel" }).count(), 0);
+});
+
+Then("the token message is {string}", async function (this: AppWorld, message: string) {
+  await this.waitForText("#tokenError", "is", message);
+});
+
+Then("the explorer got the token {string}", async function (this: AppWorld, token: string) {
+  await this.waitForAuthorization(`Bearer ${token}`);
 });
 
 Given("the player chooses the color {string}", async function (this: AppWorld, label: string) {
