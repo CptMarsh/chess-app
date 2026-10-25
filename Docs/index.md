@@ -13,6 +13,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Line](line.md): the rules of one opening line and its move tree with variations, as commands and queries on the bus.
 - [Lichess explorer](lichess-explorer.md): the adapter that gets the most common replies of a position from Lichess.
 - [Token store and token dialog](token.md): the adapter that keeps your Lichess token in the browser, and the dialog that asks you for it.
+- [Settings store](settings.md): the adapter that keeps the rating, color and moves fields of the cog in the browser.
 - [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker, one request at a time.
 - [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
 - [Deployment](deployment.md): the build, the base path `/chess-app/` and the workflow that publishes the app on GitHub Pages.
@@ -28,6 +29,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Mobile view and navigation buttons](superpowers/specs/2026-10-25-mobile-view-design.md): on a narrow screen, the move list goes under the board. 4 buttons move through the moves, as the arrow keys do.
 - [Engine lines in explore mode](superpowers/specs/2026-10-25-engine-lines-design.md): in explore mode, the panel shows the 3 best Stockfish lines of the position on the board.
 - [Copy PGN](superpowers/specs/2026-10-25-copy-pgn-design.md): a button that puts the PGN of the move tree, with its variations, on the clipboard.
+- [Saved settings](superpowers/specs/2026-10-25-saved-settings-design.md): the app keeps the cog settings in the browser. With saved settings, the cog does not open when the app starts.
 
 ## Process
 We use spec-driven development with a red-green-refactor loop. The unit specs are in `src/**/*.spec.ts` (Vitest). The e2e scenarios are in `e2e/features/` (Cucumber.js and Playwright).

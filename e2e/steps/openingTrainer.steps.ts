@@ -127,6 +127,16 @@ Then("the Moves field shows {string}", async function (this: AppWorld, moves: st
   assert.equal(await this.page.getByLabel("Moves").inputValue(), moves);
 });
 
+Then("the Rating field shows {string}", async function (this: AppWorld, rating: string) {
+  await this.openSettings();
+  assert.equal(await this.page.getByLabel("Rating").inputValue(), rating);
+});
+
+Then("the Color field shows {string}", async function (this: AppWorld, label: string) {
+  await this.openSettings();
+  assert.equal(await this.page.getByLabel("Color").evaluate((select: HTMLSelectElement) => select.selectedOptions[0].label), label);
+});
+
 Then("the moves are {string}", async function (this: AppWorld, moves: string) {
   await this.waitForMoves(moves);
 });

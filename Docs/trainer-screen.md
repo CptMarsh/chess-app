@@ -3,14 +3,14 @@ type: component
 title: Trainer screen
 description: The screen of the opening trainer. It shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the navigation buttons, the engine lines in explore mode, the message, the accuracy, the status, and the Copy PGN and Change token buttons.
 resource: src/ui/trainerView.ts
-tags: [ui, screen, chessground, variations, popover, mobile, engine, pgn, clipboard]
+tags: [ui, screen, settings, chessground, variations, popover, mobile, engine, pgn, clipboard]
 ---
 
 # Trainer screen
 
 The screen shows the opening trainer in the browser. It holds no chess rules. It gets all its data from the `CurrentLine` and `ExploreMoves` queries. `src/ui/` does not use `async` or `await`.
 
-`mountTrainer(root, bus, trainer, changeToken)` adds the parts of the screen to `root`. It gives the `show` function. The trainer calls `show()` after each command.
+`mountTrainer(root, bus, trainer, changeToken, savedSettings)` adds the parts of the screen to `root`. `savedSettings` is a [settings store](settings.md). It gives the `show` function. The trainer calls `show()` after each command.
 
 ```
 +----+------------------+  +---------------------------------+
@@ -43,7 +43,7 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | `#panel` | The side panel, on the right of `#boardRow`. It is 320 pixels wide and has the height of the board (400 pixels). It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#navigation`, `#engineLines`, `#message`, `#accuracy`, `#status` and `#bottom`. |
 | `#top` | The top of the panel: **New line** (`#newLine`) on the left and the cog button (`#cog`) on the right. |
 | `#cog` | The cog button: an inline SVG in `currentColor`, with `aria-label="Settings"` and `popovertarget="settings"`. A click on the cog opens or closes `#settings`. |
-| `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color` and `Moves` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
+| `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color` and `Moves` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. When `savedSettings.read()` is `null`, `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. With saved settings, the fields get the saved values and the popover stays closed. Each `change` event in `#settings` saves the 3 fields with `savedSettings.save`. See "Saved settings". A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
 | `#moveMenu` | The menu of a variation move: a popover with one button, **Delete from here**. See "Delete". |
 | `Rating` field | The rating that you type before each line. |
 | `Color` field | A select with `White` and `Black`. White is the default. |
@@ -194,6 +194,14 @@ The screen sends `DeleteVariation` on the bus. It does not use the trainer, beca
 | `keptView(viewed, shownCurrent, current)` | `viewed` when `shownCurrent` is `current`. In all other conditions, `null`. |
 | `childOf(nodes, at, uci)` | The id of the child of `at` with this `uci`, or `undefined`. |
 
+## Saved settings
+
+The app keeps the `Rating`, `Color` and `Moves` fields in the browser (`localStorage`, key `settings`). See [Settings store](settings.md).
+
+- When the app starts with saved settings, the fields show the saved texts and `#settings` stays closed. Without saved settings, `#settings` opens.
+- A `change` event in `#settings` saves the texts of the 3 fields, as you typed them. A text field sends `change` when you leave it after a change. The select sends it when you choose a color. Thus a click on **New line** after you type the rating saves it.
+- The trainer checks the values when you click **New line**, as before. A saved value that is not correct shows its error in `#message`.
+
 ## Copy PGN
 
 A click on **Copy PGN** asks `CurrentLine` and gives `pgnText(nodes)` to `navigator.clipboard.writeText`. The PGN has the full move tree, with its variations, at all positions and in all statuses.
@@ -234,7 +242,7 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 2. It makes a `StockfishEngine` with `` new Worker(`${import.meta.env.BASE_URL}stockfish/stockfish-19-lite-single.js`) ``.
 3. It makes a `TokenStore` with `() => localStorage`, and a `LichessExplorer` with `() => tokens.read()`.
 4. It makes the `Trainer` with a `show` function that calls the `show` function of the screen.
-5. It calls `mountTokenDialog(document.body, tokens)`. It gives its `open` function to `mountTrainer` as `changeToken`. Then it calls `show()`.
+5. It calls `mountTokenDialog(document.body, tokens)`. It gives its `open` function to `mountTrainer` as `changeToken`, and a `SettingsStore` with `() => localStorage` as `savedSettings`. Then it calls `show()`.
 6. If `tokens.read()` is `""`, it opens the token dialog.
 
 ## Setup
@@ -247,7 +255,7 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 ## Tests
 
 - `src/ui/text.spec.ts` (Vitest) tests the text functions. `src/ui/navigation.spec.ts` tests the navigation functions.
-- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 15 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and its refutation, one for the navigation, one for a phone, one for an exploration from an old position, one for the engine lines, one for a delete, one for Copy PGN, one for the cog, and 2 for the token dialog. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` and the fixed refutation `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. The real Stockfish gives the same scores and lines each time, so they do not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. Before each scenario, an init script puts the token `e2e-token` in `localStorage`, when there is no token. Scenarios with the tag `@withoutToken` get no init script. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
+- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 16 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and its refutation, one for the navigation, one for a phone, one for an exploration from an old position, one for the engine lines, one for a delete, one for Copy PGN, one for the cog, one for the saved settings, and 2 for the token dialog. The saved settings scenario chooses Black and 5 moves, starts a line and reloads the app. Then the settings are closed, and the steps `the Rating field shows {string}`, `the Color field shows {string}` and `the Moves field shows {string}` check the fields. Each scenario has a new browser context, so it starts with no saved settings. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` and the fixed refutation `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. The real Stockfish gives the same scores and lines each time, so they do not change. Only the scenario of 5 moves, the scenario of 3 moves and the saved settings scenario change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. Before each scenario, an init script puts the token `e2e-token` in `localStorage`, when there is no token. Scenarios with the tag `@withoutToken` get no init script. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
 - 2 scenarios are for the [token dialog](token.md). `@withoutToken` The app asks for your token: the dialog is open with no **Cancel**, Escape does not close it, an empty token shows `Paste your Lichess token.`, the saved token goes to the explorer, and after a reload the dialog stays closed. You change the token: **Change token**, a new token, and the explorer gets it. The step of an explorer table keeps the `Authorization` header of each request in `AppWorld.authorizations`. The step `the explorer got the token {string}` waits until the last header is `Bearer <token>`.
 - The step `the moves are` waits until the text that `AppWorld.waitForMoves` makes from `#moveList` is the text of the step. It reads the rows and the variation lines in order. For each row, it takes the number, then the SAN of each move, with ` (42%)` after a move with a %. A variation line gives its tokens with spaces, but with no space after `(` and before `)`, for example `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. Thus the texts in the feature stay `1. e4 e5 (42%) 2. Nf3`.
 - The steps that use the `Rating`, `Color` and `Moves` fields open the cog first if `#settings` is closed (`AppWorld.openSettings`). The steps `the player right-clicks the move {string}`, `the player clicks {string}` (a button by its name), `the player clicks the cog`, `the settings are open` and `the settings are closed` (`:popover-open`) are for the variations and the cog.

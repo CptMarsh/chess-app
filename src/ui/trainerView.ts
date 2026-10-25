@@ -4,6 +4,7 @@ import "chessground/assets/chessground.brown.css";
 import "chessground/assets/chessground.cburnett.css";
 import type { Key } from "chessground/types";
 import { CurrentLine, DeleteVariation, ExploreMoves, type Color, type LineBus, type MoveNode, type Status } from "../line/messages.ts";
+import type { SettingsStore } from "../settings/settings.ts";
 import type { Trainer } from "../trainer/trainer.ts";
 import { childOf, keptView, nextView, viewOf } from "./navigation.ts";
 import { accuracyText, barEval, barText, evalBarPercent, lineMoves, lineScore, moveRows, pathEvals, pgnText, readNumber, statusText, type MoveCell, type VariationLine } from "./text.ts";
@@ -30,7 +31,7 @@ const COG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke=
 
 type Drop = { line: true } | { line: false; at: number };
 
-export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove" | "examine">, changeToken: () => void): () => void {
+export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove" | "examine">, changeToken: () => void, savedSettings: Pick<SettingsStore, "read" | "save">): () => void {
   root.innerHTML = `
     <div id="boardRow">
       <div id="evalBar"><div id="evalBarWhite"></div><span id="evalBarText"></span></div>
@@ -104,6 +105,16 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
         },
       },
     },
+  });
+
+  const saved = savedSettings.read();
+  if (saved !== null) {
+    rating.value = saved.rating;
+    color.value = saved.color;
+    movesField.value = saved.moves;
+  }
+  settings.addEventListener("change", () => {
+    savedSettings.save({ rating: rating.value, color: color.value as Color, moves: movesField.value });
   });
 
   newLine.addEventListener("click", () => {
@@ -231,7 +242,7 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     menuTarget = null;
   });
 
-  settings.showPopover();
+  if (saved === null) settings.showPopover();
   return show;
 }
 
