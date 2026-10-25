@@ -24,9 +24,8 @@ export class StartLineHandler implements CommandHandler<StartLine> {
     this.#state.message = "";
     this.#state.arrows = [];
     this.#state.acceptable = [];
-    this.#state.evals = [null];
     this.#state.yourMoves = 0;
-    this.#state.percents = [];
+    this.#state.newTree();
     this.#state.accuracy = { correct: 0, checked: 0 };
   }
 }

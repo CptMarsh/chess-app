@@ -7,21 +7,24 @@ type TestEngine = {
   engine: StockfishEngine;
   commands: string[];
   candidates?: Candidate[];
-  score?: number;
+  score?: Candidate;
   error?: unknown;
 };
 
 class FakeWorker extends EventTarget {
   readonly #commands: string[];
   readonly #answer: (command: string) => Event[];
+  readonly #badFen: string | undefined;
 
-  constructor(commands: string[], answer: (command: string) => Event[]) {
+  constructor(commands: string[], answer: (command: string) => Event[], badFen?: string) {
     super();
     this.#commands = commands;
     this.#answer = answer;
+    this.#badFen = badFen;
   }
 
   postMessage(command: string) {
+    if (command === `position fen ${this.#badFen}`) throw new Error("The fen is bad.");
     this.#commands.push(command);
     queueMicrotask(() => this.#answer(command).forEach((event) => this.dispatchEvent(event)));
   }
@@ -32,6 +35,10 @@ function lines(...texts: string[]): Event[] {
 }
 
 export function givenAnEngineThatAnswers(answers: Answers): TestEngine {
+  return givenAnEngineThatFailsOnTheFen(undefined, answers);
+}
+
+export function givenAnEngineThatFailsOnTheFen(badFen: string | undefined, answers: Answers): TestEngine {
   const commands: string[] = [];
   const answer = (command: string): Event[] => {
     if (command === "uci") return lines("uciok");
@@ -40,7 +47,7 @@ export function givenAnEngineThatAnswers(answers: Answers): TestEngine {
     if (command.startsWith("go depth 16 searchmoves ")) return lines(...(answers.searchmoves ?? []));
     return [];
   };
-  return { engine: new StockfishEngine(new FakeWorker(commands, answer)), commands };
+  return { engine: new StockfishEngine(new FakeWorker(commands, answer, badFen)), commands };
 }
 
 export function givenAnEngineWhoseWorkerFails(): TestEngine {
@@ -49,6 +56,7 @@ export function givenAnEngineWhoseWorkerFails(): TestEngine {
 }
 
 export async function whenYouAskForAnAnalysis(test: TestEngine, fen: string) {
+  test.error = undefined;
   try {
     test.candidates = await test.engine.analyse(fen);
   } catch (error) {
@@ -64,12 +72,16 @@ export async function whenYouAskForTheScoreOf(test: TestEngine, fen: string, mov
   }
 }
 
+export async function whenYouAskForAnAnalysisAndAScoreAtOnce(test: TestEngine, fen: string, move: string) {
+  await Promise.all([whenYouAskForAnAnalysis(test, fen), whenYouAskForTheScoreOf(test, fen, move)]);
+}
+
 export function thenTheCandidatesAre(test: TestEngine, candidates: Candidate[]) {
   expect(test.error).toBeUndefined();
   expect(test.candidates).toEqual(candidates);
 }
 
-export function thenTheScoreIs(test: TestEngine, score: number) {
+export function thenTheScoreIs(test: TestEngine, score: Candidate) {
   expect(test.error).toBeUndefined();
   expect(test.score).toEqual(score);
 }

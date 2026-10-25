@@ -1,14 +1,19 @@
 import { expect } from "vitest";
-import { keptView, nextView, viewOf } from "./navigation.ts";
+import { treeOf, type TestNode } from "./text.steps.ts";
+import { childOf, keptView, nextView, viewOf } from "./navigation.ts";
 
-export function thenTheNextViewIs(key: string, viewed: number | null, moveCount: number, result: number | null) {
-  expect(nextView(key, viewed, moveCount)).toBe(result);
+export function thenTheNextViewIs(key: string, viewed: number | null, nodes: TestNode[], current: number, result: number | null) {
+  expect(nextView(key, viewed, treeOf(nodes), current)).toBe(result);
 }
 
-export function thenTheViewOfIs(moves: number, moveCount: number, result: number | null) {
-  expect(viewOf(moves, moveCount)).toBe(result);
+export function thenTheViewOfIs(id: number, current: number, result: number | null) {
+  expect(viewOf(id, current)).toBe(result);
 }
 
-export function thenTheKeptViewIs(viewed: number | null, shownCount: number, moveCount: number, result: number | null) {
-  expect(keptView(viewed, shownCount, moveCount)).toBe(result);
+export function thenTheKeptViewIs(viewed: number | null, shownCurrent: number, current: number, result: number | null) {
+  expect(keptView(viewed, shownCurrent, current)).toBe(result);
+}
+
+export function thenTheChildIs(nodes: TestNode[], at: number, uci: string, result: number | undefined) {
+  expect(childOf(treeOf(nodes), at, uci)).toBe(result);
 }

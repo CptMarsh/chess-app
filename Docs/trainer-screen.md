@@ -1,26 +1,28 @@
 ---
 type: component
 title: Trainer screen
-description: The screen of the opening trainer. It shows the rating field, the color field, the moves field, the board, the eval bar with the eval number, the move list, the message, the accuracy and the status.
+description: The screen of the opening trainer. It shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the message, the accuracy and the status.
 resource: src/ui/trainerView.ts
-tags: [ui, screen, chessground]
+tags: [ui, screen, chessground, variations, popover]
 ---
 
 # Trainer screen
 
-The screen shows the opening trainer in the browser. It holds no chess rules. It gets all its data from the `CurrentLine` query. `src/ui/` does not use `async` or `await`.
+The screen shows the opening trainer in the browser. It holds no chess rules. It gets all its data from the `CurrentLine` and `ExploreMoves` queries. `src/ui/` does not use `async` or `await`.
 
 `mountTrainer(root, bus, trainer)` adds the parts of the screen to `root`. It gives the `show` function. The trainer calls `show()` after each command.
 
 ```
 +----+------------------+  +---------------------------------+
-|    |                  |  | Rating [1450] Color [White v]   |
-|░░░░|                  |  | Moves [10]          [ New line ]|
-|▓▓▓▓|      board       |  +---------------------------------+
-|▓▓▓▓|                  |  | 1.  e4         e5   42%         |
-|▓▓▓▓|                  |  | 2.  Nf3       [Nc6] 61%         |
-|0.3 |                  |  |                                 |
-+----+------------------+  +---------------------------------+
+|    |                  |  | [ New line ]                [⚙] |
+|░░░░|                  |  |               +----------------+|
+|▓▓▓▓|      board       |  |               | Rating  [1450] ||
+|▓▓▓▓|                  |  |               | Color [White v]||
+|▓▓▓▓|                  |  |               | Moves     [10] ||
+|0.3 |                  |  |               +----------------+|
++----+------------------+  | 1.  e4         e5   42%         |
+                           | 2.  Nf3       [Nc6] 61%         |
+                           |   (2. Ba6 Nxa6 3. Nf3 d5)       |
                            | Bc4 loses 0.8 pawns.            |
                            | Play Bb5 or d4.                 |
                            | Accuracy: 7 of 9 correct (78%)  |
@@ -33,8 +35,11 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | Part | Content |
 |---|---|
 | `#boardRow` | The eval bar and the board, side by side. |
-| `#panel` | The side panel, on the right of `#boardRow`. It is 320 pixels wide and has the height of the board (400 pixels). It holds `#settings`, `#moveList`, `#message`, `#accuracy` and `#status`. |
-| `#settings` | The `Rating`, `Color` and `Moves` fields and the **New line** button. |
+| `#panel` | The side panel, on the right of `#boardRow`. It is 320 pixels wide and has the height of the board (400 pixels). It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#message`, `#accuracy` and `#status`. |
+| `#top` | The top of the panel: **New line** (`#newLine`) on the left and the cog button (`#cog`) on the right. |
+| `#cog` | The cog button: an inline SVG in `currentColor`, with `aria-label="Settings"` and `popovertarget="settings"`. A click on the cog opens or closes `#settings`. |
+| `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color` and `Moves` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
+| `#moveMenu` | The menu of a variation move: a popover with one button, **Delete from here**. See "Delete". |
 | `Rating` field | The rating that you type before each line. |
 | `Color` field | A select with `White` and `Black`. White is the default. |
 | `Moves` field | The number of your moves in the line. The start value is `10`. |
@@ -43,7 +48,7 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | `#evalBar` | A vertical bar on the left of the board, in the same row. It is 24 pixels wide and 400 pixels high. Its dark part is `surface-300`. It holds `#evalBarWhite`. It has `flex-direction: column-reverse`, so the light part starts at the bottom. It has the class `black` when the color is Black. Then the direction is `column`, so the light part starts at the top. |
 | `#evalBarWhite` | The light part of the bar. Its height is 50 % when `shownEval` is `null`, and `evalBarPercent(shownEval)` % in all other conditions. |
 | `#evalBarText` | The eval number on the bar: `barText(shownEval)`, 10 pixels, weight 600. It has the class `whiteEnd` when `shownEval` is `null` or 0 or more, and `blackEnd` when it is less than 0. `whiteEnd` is at the White end of the bar, in dark text (`surface-100`). `blackEnd` is at the Black end, in light text (`ink`). The White end is at the bottom for White, and at the top for Black (`#evalBar.black`). |
-| `#moveList` | One row (`.row`) for each move number, from `moveRows(moves)`. A row has the number (`.number`, for example `1.`, in the `label` style), the White move and the Black move. Each move is a `.move` with `data-index` (the index in `moves`, from 0). It holds the SAN (`.san`) and the % (`.percent`, for example `42%`, or empty for your moves) in small text (`ink-muted`). The viewed move has the class `viewed`, the background `amber` and the text `on-accent`. At the current position, this is the last move. At the start position, no move has the class. The row of the viewed move scrolls into view. The list fills the free height of the panel and scrolls. |
+| `#moveList` | The items of `moveRows(nodes)`, in order: rows (`.row`) and variation lines (`.variations`). See "Move list". The list fills the free height of the panel and scrolls. |
 | `#message` | The message of the line, or the rating error. |
 | `#accuracy` | `Accuracy: ` and `accuracyText(accuracy)`. It comes after `#message`. |
 | `#status` | `Status: ` and the status text. |
@@ -62,7 +67,9 @@ The screen is always dark. There is no switch. `trainer.css` sets `color-scheme:
 | The % and the move numbers | `ink-muted` |
 | Highlight of the viewed move | `amber`, with `on-accent` text |
 | **New line** | `oak`, with `on-accent` text in weight 600 and the corners `radius-sm` (2 pixels). When it is disabled, its opacity is 0.5. |
-| Fields and the select | `surface-300`, with `ink` text, a 1-pixel `line-strong` border and the corners `radius-sm` |
+| Fields, the select and the cog | `surface-300`, with `ink` text, a 1-pixel `line-strong` border and the corners `radius-sm` |
+| `#settings` and `#moveMenu` | `surface-300`, with a 1-pixel `line-strong` border, the corners `radius-md` and the padding `space-4` |
+| `.variations` | `ink-muted`, with an indent of `space-4`. Its text wraps. |
 | Focus | A 2-pixel `amber` outline, 2 pixels from the part (`:focus-visible`) |
 | Eval bar | `ink` for the White part, `surface-300` for the Black part |
 
@@ -70,19 +77,29 @@ The text is in the `body` style: Karla, 15 pixels, line height 24 pixels. The mo
 
 The fonts come from the npm packages `@fontsource/karla` (weights 400 and 600) and `@fontsource/jetbrains-mono` (weight 600). Vite puts the font files in the build, so the app sends no font request to other sites, and the fonts also work offline.
 
-The board (`chessground.brown.css`) keeps its colors. In `#settings`, the fields are 56 pixels wide, so the 3 fields and **New line** fit on 2 lines.
+The board (`chessground.brown.css`) keeps its colors. In `#settings`, the inputs are 56 pixels wide.
+
+## Move list
+
+- The rows of the main line have the number (`.number`, for example `1.`, in the `label` style), the White move and the Black move. Each move is a `.move` with `data-id` (the id of its node). It holds the SAN (`.san`) and the % (`.percent`, for example `42%`, or empty for your moves) in small text (`ink-muted`).
+- The variations of a node P are the children of P after the main child. They show in a `.variations` line after the row of the main child of P. If P has no main child (P is `current`), the line comes after the last row. If there are no rows, it is the first line.
+- Each variation is in parentheses (`.paren`). A nested variation shows in the parentheses of its parent variation. It comes after the move that it is an alternative to, as in PGN: `(2. Bc4 Nf6 (2... Nc6 3. d3) 3. d3)`.
+- Move numbers in a variation follow PGN. A White move always has its number (`3.`). A Black move has its number with `...` (`2...`) when it is the first move of a variation, or when it comes after a nested variation.
+- Each variation move is a `.move` with `data-id`. It holds `.number` (the number, or empty) and `.san`. A variation move has no %. Only the replies of the line have a %.
+- The viewed move has the class `viewed`, the background `amber` and the text `on-accent`. At the start position, no move has the class. The viewed move scrolls into view.
 
 ## The show function
 
-`show()` asks `CurrentLine`. Then it draws all parts again:
+`show()` asks `CurrentLine`. Then it draws all parts again. `at` is `viewed`, or `current` when `viewed` is `null`.
 
-- The board gets the FEN of the viewed position, the side to move (field 2 of the FEN) and the orientation (the color of the line). See "Navigation".
-- You can move a piece of your color only when the status is `yourMove` or `tryAgain`. The board lets you drop a piece only on a legal square from `legalMoves`. In `tryAgain`, these are only the acceptable moves.
-- The board shows each arrow of the line in green. After a mistake, there is one arrow for each acceptable move.
-- The board marks no last move. `CurrentLine` does not hold the last move, and chessground would mark an old move.
-- Each `show()` sets `shownEval`, the eval that the bar shows, to `barEval(evals, position)`. `evals` is `startEval` and then the `eval` of each move. `position` is `viewed`, or the number of moves at the current position. Then it sets the height of `#evalBarWhite` and the text of `#evalBarText`.
-- Eval bar rule: the bar shows the eval of the position on the board. When that eval is `null`, the bar shows the eval of the nearest earlier position that has an eval. When no earlier position has an eval, the bar is at 50 and has no number. For example, while the engine checks your move, the bar shows the eval of the position before your move. At the position after your first move, the bar shows the eval of the position before it, because the line does not judge your first move. For Black, the start position has no eval, so the bar is at 50 there.
-- The **New line** button is enabled only when the status is `yourMove`, `tryAgain` or `ended`. In these statuses, no answer is pending. Thus a late answer cannot go into a different line.
+- The board gets the `fen` of node `at`, the side to move (field 2 of the FEN) and the orientation (the color of the line).
+- **Line move.** When `viewed` is `null` and the status is `yourMove` or `tryAgain`, you move your color with `legalMoves`. In `tryAgain`, these are only the acceptable moves. A drop calls `trainer.yourMove`.
+- **Variation move.** In all other conditions, you move the side to move of the position, with the moves from `ExploreMoves(at)`. A drop calls `trainer.exploreMove(at, move)`. Then the screen sets `viewed` to the child of `at` with this move (`childOf`), and calls `show()`. The first part of `exploreMove` puts the node in the tree before the call gives its promise, so the child is there.
+- The board shows each arrow of the line in green, only at the current position. After a mistake, there is one arrow for each acceptable move. The engine shows no arrows in a variation.
+- The board marks no last move.
+- The bar gets `shownEval = barEval(pathEvals(nodes, at))`: the evals on the path from the start position to `at`. Then it sets the height of `#evalBarWhite` and the text of `#evalBarText`.
+- Eval bar rule: the bar shows the eval of the position on the board. When that eval is `null`, the bar shows the eval of the nearest earlier position on the path that has an eval. When no earlier position has an eval, the bar is at 50 and has no number. For example, while the engine checks your move or a variation move, the bar shows the eval of the position before it. For Black, the start position has no eval, so the bar is at 50 there.
+- The **New line** button is enabled only when the status is `yourMove`, `tryAgain` or `ended`. In these statuses, no answer is pending. Thus a late answer cannot go into a different line. You can explore in the same statuses.
 
 | Status | Status text |
 |---|---|
@@ -95,32 +112,42 @@ The board (`chessground.brown.css`) keeps its colors. In `#settings`, the fields
 
 ## Navigation
 
-The screen keeps `viewed`: the number of moves of the viewed position, or `null` for the current position. It also keeps `shownCount`: the number of moves at the last `show()`.
+The screen keeps `viewed`: a node id, or `null` for the current position. It also keeps the `current` of the last `show()`.
 
 | Key | Result |
 |---|---|
-| ← (`ArrowLeft`) | One move back. It does not go below the start position. |
-| → (`ArrowRight`) | One move forward. |
+| ← (`ArrowLeft`) | The parent of the viewed position. At the start position, no change. |
+| → (`ArrowRight`) | The first child of the viewed position (the main child, or the next move of a variation). Without a child, no change. |
 | ↑ (`ArrowUp`) | The start position. |
-| ↓ (`ArrowDown`) | The current position. |
+| ↓ (`ArrowDown`) | The current position (`null`). |
 
-- A click on a move shows the position after that move.
-- The position of `viewed` 0 is the start position (`fen: "start"` in chessground). The position of `viewed` `n` is the `fen` of move `n`.
-- At an old position, the board is locked and has no arrows. The highlight (`viewed`) is on the viewed move. The eval bar shows the eval of the viewed position (see the eval bar rule). The message, the accuracy and the status always show the current position. **New line** keeps its rule.
-- When the number of moves changes, `viewed` goes back to `null`. Thus a reply or a take back shows the current position.
+- A click on a move shows the position of that move.
+- If the result is `current`, `viewed` is `null`.
+- At an old position or in a variation, the board has no arrows, and the message, the accuracy and the status show the current position. **New line** keeps its rule.
+- When `current` changes, `viewed` goes back to `null`. Thus a reply, a take back or a new line shows the current position.
 - When the focus is in an `input` or a `select`, the keys do not navigate. For the 4 arrow keys, the screen stops the default action. Thus ↑ and ↓ do not scroll the page.
+
+## Delete
+
+The screen sends `DeleteVariation` on the bus. It does not use the trainer, because the engine has no work.
+
+- **Delete key.** When the viewed position is a variation node, the Delete key deletes it. When the focus is in an `input` or a `select`, the key does not delete.
+- **Menu.** A right-click on a variation move opens `#moveMenu` at the mouse. A click on **Delete from here** deletes that move. A right-click on a move of the line opens the normal menu of the browser.
+- After a delete, if the viewed position is not in the tree, `viewed` goes to the parent of the deleted node.
+- `#moveMenu` is a manual popover (`popover="manual"`). On Linux, `contextmenu` comes on the mouse down, and the light dismiss of the browser would close the menu on the mouse up. Thus the screen closes the menu itself: on a `pointerdown` outside the menu, on the Escape key, and after a click on its button.
 
 ### Navigation functions (`src/ui/navigation.ts`)
 
 | Function | Result |
 |---|---|
-| `viewOf(moves, moveCount)` | `null` when `moves` is `moveCount` or more. In all other conditions, `moves`. A click on the move with index `i` gives `viewOf(i + 1, moveCount)`. |
-| `nextView(key, viewed, moveCount)` | The next `viewed` for a key, from the table above. Each result goes through `viewOf`. From `null`, ← gives `moveCount - 1`, and → gives `null`. Other keys give no change. |
-| `keptView(viewed, shownCount, moveCount)` | `viewed` when `shownCount` is `moveCount`. In all other conditions, `null`. |
+| `nextView(key, viewed, nodes, current)` | The next `viewed` for a key, from the table above. Each result goes through `viewOf`. Other keys give no change. |
+| `viewOf(id, current)` | `null` when `id` is `current`. In all other conditions, `id`. |
+| `keptView(viewed, shownCurrent, current)` | `viewed` when `shownCurrent` is `current`. In all other conditions, `null`. |
+| `childOf(nodes, at, uci)` | The id of the child of `at` with this `uci`, or `undefined`. |
 
 ## Your move
 
-When you drop a piece, the screen sends the move in UCI to `trainer.yourMove`, for example `e2e4`. A pawn on rank 8 or rank 1 always becomes a queen. For this pawn, the screen adds `q`, for example `b7a8q`.
+When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to `trainer.yourMove` or `trainer.exploreMove`. A pawn on rank 8 or rank 1 always becomes a queen. For this pawn, the screen adds `q`, for example `b7a8q`.
 
 ## New line
 
@@ -131,12 +158,13 @@ When you drop a piece, the screen sends the move in UCI to `trainer.yourMove`, f
 | Function | Result |
 |---|---|
 | `readNumber(text)` | The number in the text. An empty text, or a text with only spaces, gives `NaN`. |
-| `moveRows(moves)` | One `{ number, white, black }` for each move number. `white` and `black` are `{ index, san, percent }`. `index` is the index in `moves`, from 0. `black` is `null` when the row has only the White move. `[e4 null, e5 42, Nf3 null]` gives 2 rows: `1` with `e4` and `e5`, and `2` with `Nf3` and `null`. |
+| `moveRows(nodes)` | The items of the move list, in order (see "Move list"). An item is a row `{ number, white, black }` or a variation line `{ tokens }`. `white` and `black` are `{ id, san, percent }`. `black` is `null` when the row has only the White move. A token is `"("`, `")"` or a move `{ id, number, san }`. `number` is for example `2.`, `2...` or empty. The number of a move comes from the FEN of its node. |
+| `pathEvals(nodes, id)` | The evals from the start position to node `id`. |
 | `statusText(status)` | The status text from the table above. |
 | `barText(centipawns)` | `null` gives an empty text. `10000` and `-10000` give `M`. Other values give the pawns, rounded to one decimal, with no sign, as on chess.com. For example `30` gives `0.3`, `-120` gives `1.2`, and `-4` gives `0.0`. |
 | `accuracyText(accuracy)` | `checked` 0 gives `–`. Other values give `correct of checked correct (percent%)`, with the percent rounded to a whole number. For example `{ 7, 9 }` gives `7 of 9 correct (78%)`. |
 | `evalBarPercent(centipawns)` | `50 + 50 × (2 ÷ (1 + e^(−0.00368208 × centipawns)) − 1)`. `10000` gives 100. `-10000` gives 0. `0` gives 50. |
-| `barEval(evals, position)` | The last value that is not `null` in `evals`, from index 0 to index `position`. If all are `null`, it gives `null`. For example, `[30, null, 50]` with `position` 1 gives 30. |
+| `barEval(evals)` | The last value that is not `null` in `evals`. If all are `null`, it gives `null`. For example, `[30, null]` gives 30. |
 
 ## Start of the app (`src/main.ts`)
 
@@ -158,8 +186,9 @@ When you drop a piece, the screen sends the move in UCI to `trainer.yourMove`, f
 ## Tests
 
 - `src/ui/text.spec.ts` (Vitest) tests the text functions. `src/ui/navigation.spec.ts` tests the navigation functions.
-- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 7 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and one for the navigation. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` The real Stockfish gives the same scores each time, so this message does not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. The test server sets `VITE_LICHESS_TOKEN` to `e2e-token`. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
-- The step `the moves are` waits until the text that `AppWorld.waitForMoves` makes from `#moveList` is the text of the step. For each row, it takes the number, then the SAN of each move, with ` (42%)` after a move with a %. Thus the texts in the feature stay `1. e4 e5 (42%) 2. Nf3`.
+- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 10 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and its refutation, one for the navigation, one for an exploration from an old position, one for a delete, and one for the cog. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` and the fixed refutation `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. The real Stockfish gives the same scores and lines each time, so they do not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. The test server sets `VITE_LICHESS_TOKEN` to `e2e-token`. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
+- The step `the moves are` waits until the text that `AppWorld.waitForMoves` makes from `#moveList` is the text of the step. It reads the rows and the variation lines in order. For each row, it takes the number, then the SAN of each move, with ` (42%)` after a move with a %. A variation line gives its tokens with spaces, but with no space after `(` and before `)`, for example `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. Thus the texts in the feature stay `1. e4 e5 (42%) 2. Nf3`.
+- The steps that use the `Rating`, `Color` and `Moves` fields open the cog first if `#settings` is closed (`AppWorld.openSettings`). The steps `the player right-clicks the move {string}`, `the player clicks {string}` (a button by its name), `the player clicks the cog`, `the settings are open` and `the settings are closed` (`:popover-open`) are for the variations and the cog.
 - The navigation scenario uses the steps `the player presses {string}`, `the player presses {string} in the {string} field`, `the player clicks the move {string}`, `the highlighted move is {string}` and `the board has a {string} on {string}`. `AppWorld.waitForPiece(piece, square)` waits until a `cg-board piece` with the classes of the piece (for example `black knight`) has a `translate` on that square. The square math is the inverse of the clicks of `AppWorld.play`.
 - The explorer answer in the e2e tests is one row of the table in the feature. The row is the full move number of the FEN (field 6), counted from 1. The third column of the row is the % of the move. The answer has the position total 100, so the screen shows this %.
-- `AppWorld.play(move)` waits for `Status: your move` or `Status: try again`. It keeps the move list and the status. Then it clicks the 2 squares (for the Black side of the board, the click position is turned around), and waits until the text of `#moveList` or the status changes. Thus the next move does not start before the screen shows the move. (After a mistake, the move list can stay the same, but the status changes.)
+- `AppWorld.play(move)` also plays a variation move: it clicks the squares on the board, as for a line move. It waits for `Status: your move` or `Status: try again`. It keeps the move list and the status. Then it clicks the 2 squares (for the Black side of the board, the click position is turned around), and waits until the text of `#moveList` or the status changes. Thus the next move does not start before the screen shows the move. (After a mistake, the move list can stay the same, but the status changes.)

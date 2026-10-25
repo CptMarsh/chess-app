@@ -8,16 +8,24 @@ let server: ViteDevServer;
 let browser: Browser;
 let appUrl: string;
 
-// Runs in the page. It makes the text of the move list, for example "1. e4 e5 (42%) 2. Nf3".
+// Runs in the page. It makes the text of the move list, for example "1. e4 e5 (42%) (1... c5 2. Nf3) 2. Nf3".
 function shownMoves(): string {
-  return [...document.querySelectorAll("#moveList .row")]
-    .flatMap((row) => [
-      row.querySelector(".number")?.textContent ?? "",
-      ...[...row.querySelectorAll(".move")].map((move) => {
-        const percent = move.querySelector(".percent")?.textContent ?? "";
-        return `${move.querySelector(".san")?.textContent ?? ""}${percent === "" ? "" : ` (${percent})`}`;
-      }),
-    ])
+  return [...document.querySelectorAll("#moveList > .row, #moveList > .variations")]
+    .flatMap((item) => {
+      if (item.classList.contains("variations")) {
+        const tokens = [...item.querySelectorAll(":scope > .paren, :scope > .move")].map((token) => token.classList.contains("paren")
+          ? token.textContent ?? ""
+          : [token.querySelector(".number")?.textContent ?? "", token.querySelector(".san")?.textContent ?? ""].filter((part) => part !== "").join(" "));
+        return [tokens.join(" ").replaceAll("( ", "(").replaceAll(" )", ")")];
+      }
+      return [
+        item.querySelector(".number")?.textContent ?? "",
+        ...[...item.querySelectorAll(".move")].map((move) => {
+          const percent = move.querySelector(".percent")?.textContent ?? "";
+          return `${move.querySelector(".san")?.textContent ?? ""}${percent === "" ? "" : ` (${percent})`}`;
+        }),
+      ];
+    })
     .join(" ");
 }
 
@@ -27,6 +35,14 @@ export class AppWorld extends World {
 
   async openApp() {
     await this.page.goto(appUrl);
+  }
+
+  async settingsAreOpen(): Promise<boolean> {
+    return this.page.evaluate(() => document.querySelector("#settings")!.matches(":popover-open"));
+  }
+
+  async openSettings() {
+    if (!(await this.settingsAreOpen())) await this.page.locator("#cog").click();
   }
 
   async play(move: string) {

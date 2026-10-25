@@ -3,10 +3,10 @@ import "chessground/assets/chessground.base.css";
 import "chessground/assets/chessground.brown.css";
 import "chessground/assets/chessground.cburnett.css";
 import type { Key } from "chessground/types";
-import { CurrentLine, type Color, type LineBus } from "../line/messages.ts";
+import { CurrentLine, DeleteVariation, ExploreMoves, type Color, type LineBus, type MoveNode } from "../line/messages.ts";
 import type { Trainer } from "../trainer/trainer.ts";
-import { keptView, nextView, viewOf } from "./navigation.ts";
-import { accuracyText, barEval, barText, evalBarPercent, moveRows, readNumber, statusText, type MoveCell } from "./text.ts";
+import { childOf, keptView, nextView, viewOf } from "./navigation.ts";
+import { accuracyText, barEval, barText, evalBarPercent, moveRows, pathEvals, readNumber, statusText, type MoveCell, type VariationLine } from "./text.ts";
 import "@fontsource/karla/400.css";
 import "@fontsource/karla/600.css";
 import "@fontsource/jetbrains-mono/600.css";
@@ -14,20 +14,30 @@ import "./darkwood.css";
 import "./trainer.css";
 
 const NAVIGATION_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+const COG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <circle cx="12" cy="12" r="3"/>
+  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+</svg>`;
 
-export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove">): () => void {
+type Drop = { line: true } | { line: false; at: number };
+
+export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove">): () => void {
   root.innerHTML = `
     <div id="boardRow">
       <div id="evalBar"><div id="evalBarWhite"></div><span id="evalBarText"></span></div>
       <div id="board"></div>
     </div>
     <div id="panel">
-      <div id="settings">
+      <div id="top">
+        <button id="newLine">New line</button>
+        <button id="cog" popovertarget="settings" aria-label="Settings">${COG}</button>
+      </div>
+      <div id="settings" popover>
         <label>Rating <input id="rating"></label>
         <label>Color <select><option value="white">White</option><option value="black">Black</option></select></label>
         <label>Moves <input id="movesField" value="10"></label>
-        <button>New line</button>
       </div>
+      <div id="moveMenu" popover="manual"><button>Delete from here</button></div>
       <div id="moveList"></div>
       <p id="message"></p>
       <p id="accuracy"></p>
@@ -37,7 +47,10 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   const rating = root.querySelector<HTMLInputElement>("#rating")!;
   const movesField = root.querySelector<HTMLInputElement>("#movesField")!;
   const color = root.querySelector("select")!;
-  const newLine = root.querySelector("button")!;
+  const newLine = root.querySelector<HTMLButtonElement>("#newLine")!;
+  const cog = root.querySelector<HTMLElement>("#cog")!;
+  const settings = root.querySelector<HTMLElement>("#settings")!;
+  const moveMenu = root.querySelector<HTMLElement>("#moveMenu")!;
   const moveList = root.querySelector<HTMLElement>("#moveList")!;
   const message = root.querySelector<HTMLElement>("#message")!;
   const accuracy = root.querySelector<HTMLElement>("#accuracy")!;
@@ -46,7 +59,10 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   const evalBarText = root.querySelector<HTMLElement>("#evalBarText")!;
   const status = root.querySelector<HTMLElement>("#status")!;
   let viewed: number | null = null;
-  let shownCount = 0;
+  let shownCurrent: number | null = null;
+  let nodes: MoveNode[] = [];
+  let drop: Drop = { line: true };
+  let menuTarget: number | null = null;
 
   const board = Chessground(root.querySelector<HTMLElement>("#board")!, {
     orientation: "white",
@@ -55,7 +71,16 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       events: {
         after: (orig, dest) => {
           const promotion = board.state.pieces.get(dest)?.role === "pawn" && (dest[1] === "8" || dest[1] === "1") ? "q" : "";
-          void trainer.yourMove(orig + dest + promotion);
+          const move = orig + dest + promotion;
+          if (drop.line) {
+            void trainer.yourMove(move);
+            return;
+          }
+          const { at } = drop;
+          void trainer.exploreMove(at, move);
+          const line = bus.ask(new CurrentLine());
+          viewed = viewOf(childOf(line.nodes, at, move) ?? at, line.current);
+          show();
         },
       },
     },
@@ -67,33 +92,40 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     });
   });
 
+  settings.addEventListener("beforetoggle", (event) => {
+    if ((event as ToggleEvent).newState !== "open") return;
+    const place = cog.getBoundingClientRect();
+    settings.style.top = `${place.bottom + 4}px`;
+    settings.style.left = `${place.right}px`;
+    settings.style.translate = "-100% 0";
+  });
+
   const show = () => {
     const line = bus.ask(new CurrentLine());
-    viewed = keptView(viewed, shownCount, line.moves.length);
-    shownCount = line.moves.length;
+    nodes = line.nodes;
+    viewed = keptView(viewed, shownCurrent ?? line.current, line.current);
+    shownCurrent = line.current;
+    const at = viewed ?? line.current;
+    const node = nodes.find(({ id }) => id === at)!;
     const atCurrent = viewed === null;
-    const fen = viewed === null ? line.fen : viewed === 0 ? "start" : line.moves[viewed - 1].fen;
-    const canMove = atCurrent && (line.status === "yourMove" || line.status === "tryAgain");
+    const lineMove = atCurrent && (line.status === "yourMove" || line.status === "tryAgain");
+    drop = lineMove ? { line: true } : { line: false, at };
+    const dests = lineMove ? line.legalMoves : bus.ask(new ExploreMoves(at));
+    const turnColor = node.fen.split(" ")[1] === "b" ? "black" : "white";
     board.set({
-      fen,
+      fen: node.fen,
       orientation: line.color,
       lastMove: undefined,
-      turnColor: fen.split(" ")[1] === "b" ? "black" : "white",
-      movable: { color: canMove ? line.color : undefined, dests: (atCurrent ? line.legalMoves : new Map()) as Map<Key, Key[]> },
+      turnColor,
+      movable: { color: dests.size === 0 ? undefined : lineMove ? line.color : turnColor, dests: dests as Map<Key, Key[]> },
     });
     board.setAutoShapes(atCurrent ? line.arrows.map(({ from, to }) => ({ orig: from as Key, dest: to as Key, brush: "green" })) : []);
-    moveList.replaceChildren(...moveRows(line.moves).map((row) => {
-      const element = document.createElement("div");
-      element.className = "row";
-      element.append(Object.assign(document.createElement("span"), { className: "number", textContent: `${row.number}.` }));
-      element.append(moveCell(row.white), ...(row.black ? [moveCell(row.black)] : []));
-      return element;
-    }));
-    const viewedMove = moveList.querySelector<HTMLElement>(`[data-index="${(viewed ?? line.moves.length) - 1}"]`);
+    moveList.replaceChildren(...moveRows(nodes).map((item) => "tokens" in item ? variationLine(item) : row(item)));
+    const viewedMove = moveList.querySelector<HTMLElement>(`[data-id="${at}"]`);
     viewedMove?.classList.add("viewed");
     viewedMove?.scrollIntoView({ block: "nearest" });
     message.textContent = line.message;
-    const shownEval = barEval([line.startEval, ...line.moves.map((move) => move.eval)], viewed ?? line.moves.length);
+    const shownEval = barEval(pathEvals(nodes, at));
     evalBar.classList.toggle("black", line.color === "black");
     evalBarWhite.style.height = `${shownEval === null ? 50 : evalBarPercent(shownEval)}%`;
     evalBarText.textContent = barText(shownEval);
@@ -103,31 +135,97 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     newLine.disabled = line.status !== "yourMove" && line.status !== "tryAgain" && line.status !== "ended";
   };
 
+  const isVariation = (id: number | null) => nodes.some((node) => node.id === id && !node.main);
+
+  const deleteVariation = (id: number) => {
+    const parent = nodes.find((node) => node.id === id)!.parent!;
+    bus.send(new DeleteVariation(id));
+    const line = bus.ask(new CurrentLine());
+    if (!line.nodes.some((node) => node.id === viewed)) viewed = viewOf(parent, line.current);
+    show();
+  };
+
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") moveMenu.hidePopover();
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+    if (event.key === "Delete") {
+      if (viewed !== null && isVariation(viewed)) deleteVariation(viewed);
+      return;
+    }
     if (!NAVIGATION_KEYS.includes(event.key)) return;
     event.preventDefault();
-    viewed = nextView(event.key, viewed, shownCount);
+    viewed = nextView(event.key, viewed, nodes, shownCurrent!);
     show();
   });
 
   moveList.addEventListener("click", (event) => {
     const move = (event.target as HTMLElement).closest<HTMLElement>(".move");
     if (!move) return;
-    viewed = viewOf(Number(move.dataset.index) + 1, shownCount);
+    viewed = viewOf(Number(move.dataset.id), shownCurrent!);
     show();
   });
 
+  moveList.addEventListener("contextmenu", (event) => {
+    const move = (event.target as HTMLElement).closest<HTMLElement>(".move");
+    if (!move || !isVariation(Number(move.dataset.id))) return;
+    event.preventDefault();
+    menuTarget = Number(move.dataset.id);
+    moveMenu.style.left = `${event.clientX}px`;
+    moveMenu.style.top = `${event.clientY}px`;
+    moveMenu.showPopover();
+  });
+
+  // The menu is a manual popover: on Linux, contextmenu comes on the mouse down, and a light dismiss would close the menu on the mouse up.
+  document.addEventListener("pointerdown", (event) => {
+    if (!moveMenu.contains(event.target as Node)) moveMenu.hidePopover();
+  });
+
+  moveMenu.querySelector("button")!.addEventListener("click", () => {
+    moveMenu.hidePopover();
+    if (menuTarget !== null && isVariation(menuTarget)) deleteVariation(menuTarget);
+    menuTarget = null;
+  });
+
+  settings.showPopover();
   return show;
 }
 
-function moveCell({ index, san, percent }: MoveCell): HTMLElement {
+function row({ number, white, black }: { number: number; white: MoveCell; black: MoveCell | null }): HTMLElement {
+  const element = document.createElement("div");
+  element.className = "row";
+  element.append(Object.assign(document.createElement("span"), { className: "number", textContent: `${number}.` }));
+  element.append(moveCell(white), ...(black ? [moveCell(black)] : []));
+  return element;
+}
+
+function moveCell({ id, san, percent }: MoveCell): HTMLElement {
   const cell = document.createElement("span");
   cell.className = "move";
-  cell.dataset.index = String(index);
+  cell.dataset.id = String(id);
   cell.append(
     Object.assign(document.createElement("span"), { className: "san", textContent: san }),
     Object.assign(document.createElement("span"), { className: "percent", textContent: percent === null ? "" : `${percent}%` }),
   );
   return cell;
+}
+
+function variationLine({ tokens }: VariationLine): HTMLElement {
+  const element = document.createElement("div");
+  element.className = "variations";
+  tokens.forEach((token, index) => {
+    if (index > 0 && tokens[index - 1] !== "(" && token !== ")") element.append(" ");
+    if (typeof token === "string") {
+      element.append(Object.assign(document.createElement("span"), { className: "paren", textContent: token }));
+      return;
+    }
+    const move = document.createElement("span");
+    move.className = "move";
+    move.dataset.id = String(token.id);
+    move.append(
+      Object.assign(document.createElement("span"), { className: "number", textContent: token.number }),
+      Object.assign(document.createElement("span"), { className: "san", textContent: token.san }),
+    );
+    element.append(move);
+  });
+  return element;
 }

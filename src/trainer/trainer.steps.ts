@@ -1,7 +1,7 @@
 import { Chess } from "chess.js";
 import { expect } from "vitest";
 import { attachLine } from "../line/line.ts";
-import { CurrentLine, LineBus, type Candidate, type Color, type LineView, type Reply } from "../line/messages.ts";
+import { CurrentLine, LineBus, type Candidate, type Color, type LineView, type MoveNode, type Reply } from "../line/messages.ts";
 import { Trainer } from "./trainer.ts";
 
 type TestTrainer = {
@@ -13,7 +13,7 @@ type TestTrainer = {
   shown: { count: number };
   error?: unknown;
   answerAnalysis?: (candidates: Candidate[]) => void;
-  answerScore?: (score: number) => void;
+  answerScore?: (score: Candidate) => void;
   answerExplorer?: (replies: Reply[]) => void;
 };
 
@@ -22,7 +22,7 @@ const SAN: Record<string, string> = { e7e5: "e5", b8c6: "Nc6", a7a6: "a6", g8f6:
 
 function build(
   analyse: (test: TestTrainer) => Promise<Candidate[]>,
-  score: (test: TestTrainer) => Promise<number>,
+  score: (test: TestTrainer) => Promise<Candidate>,
   replies: (test: TestTrainer) => Promise<Reply[]>,
   failingShow?: Error,
 ): TestTrainer {
@@ -52,8 +52,12 @@ function build(
   return test;
 }
 
-const defaultAnalysis = () => Promise.resolve([{ move: "g1f3", score: 0 }]);
-const defaultScore = () => Promise.resolve(0);
+const defaultAnalysis = () => Promise.resolve([{ move: "g1f3", score: 0, line: ["g1f3"] }]);
+const scoreOf = (test: TestTrainer, score: number, line?: string[]): Candidate => {
+  const { move } = test.scoreCalls.at(-1)!;
+  return { move, score, line: line ?? [move] };
+};
+const defaultScore = (test: TestTrainer) => Promise.resolve(scoreOf(test, 0));
 
 function defaultReplies(test: TestTrainer): Promise<Reply[]> {
   const uci = DEFAULT_REPLIES[test.explorerCalls.length - 1];
@@ -68,8 +72,12 @@ export function givenATrainerThatReplies(moves: string[]): TestTrainer {
   return build(defaultAnalysis, defaultScore, (test) => Promise.resolve([{ uci: moves[test.explorerCalls.length - 1], san: "", games: 1, percent: 1 }]));
 }
 
-export function givenATrainerThatScores(score: number): TestTrainer {
-  return build(defaultAnalysis, () => Promise.resolve(score), defaultReplies);
+export function givenATrainerThatScores(score: number, line?: string[]): TestTrainer {
+  return build(defaultAnalysis, (test) => Promise.resolve(scoreOf(test, score, line)), defaultReplies);
+}
+
+export function givenATrainerWhoseAnalysisFailsAfter(calls: number, message: string): TestTrainer {
+  return build((test) => test.analyseCalls.length > calls ? Promise.reject(new Error(message)) : defaultAnalysis(), defaultScore, defaultReplies);
 }
 
 export function givenATrainerWithCandidates(candidates: Candidate[]): TestTrainer {
@@ -79,7 +87,7 @@ export function givenATrainerWithCandidates(candidates: Candidate[]): TestTraine
 export function givenATrainerThatHoldsItsAnswers(): TestTrainer {
   return build(
     (test) => new Promise<Candidate[]>((resolve) => { test.answerAnalysis = resolve; }),
-    (test) => new Promise<number>((resolve) => { test.answerScore = resolve; }),
+    (test) => new Promise<Candidate>((resolve) => { test.answerScore = resolve; }),
     (test) => new Promise<Reply[]>((resolve) => { test.answerExplorer = resolve; }),
   );
 }
@@ -127,7 +135,7 @@ export async function whenTheEngineAnalyses(test: TestTrainer, candidates: Candi
 }
 
 export async function whenTheEngineScores(test: TestTrainer, score: number) {
-  test.answerScore?.(score);
+  test.answerScore?.(scoreOf(test, score));
   await new Promise((resolve) => setTimeout(resolve));
 }
 
@@ -164,9 +172,45 @@ export function thenTheExplorerWasAskedTimes(test: TestTrainer, times: number) {
   expect(test.explorerCalls).toHaveLength(times);
 }
 
-export function thenTheLineIs(test: TestTrainer, expected: Partial<Omit<LineView, "moves">> & { moves?: string[] }) {
+function mainSans(line: LineView): string[] {
+  const sans: string[] = [];
+  let at = line.nodes.find((node) => node.parent === null)!.id;
+  for (let next = line.nodes.find((node) => node.parent === at && node.main); next; next = line.nodes.find((node) => node.parent === at && node.main)) {
+    sans.push(next.san);
+    at = next.id;
+  }
+  return sans;
+}
+
+export function thenTheLineIs(test: TestTrainer, expected: Partial<Omit<LineView, "nodes">> & { moves?: string[] }) {
   const line = test.bus.ask(new CurrentLine());
-  expect({ ...line, moves: line.moves.map(({ san }) => san) }).toMatchObject(expected);
+  expect({ ...line, moves: mainSans(line) }).toMatchObject(expected);
+}
+
+function idOf(test: TestTrainer, sans: string[]): number {
+  const { nodes } = test.bus.ask(new CurrentLine());
+  let at = nodes.find((node) => node.parent === null)!.id;
+  for (const san of sans) at = nodes.find((node) => node.parent === at && node.san === san)!.id;
+  return at;
+}
+
+export async function whenYouExplore(test: TestTrainer, after: string[], move: string) {
+  await test.trainer.exploreMove(idOf(test, after), move);
+}
+
+export function thenTheNodeIs(test: TestTrainer, sans: string[], expected: Partial<MoveNode>) {
+  expect(test.bus.ask(new CurrentLine()).nodes.find((node) => node.id === idOf(test, sans))).toMatchObject(expected);
+}
+
+export function thenTheVariationIs(test: TestTrainer, after: string[], sans: string[]) {
+  const { nodes } = test.bus.ask(new CurrentLine());
+  const found: string[] = [];
+  let at = idOf(test, after);
+  for (let node = nodes.find((child) => child.parent === at && !child.main); node; node = nodes.find((child) => child.parent === at)) {
+    found.push(node.san);
+    at = node.id;
+  }
+  expect(found).toEqual(sans);
 }
 
 export function thenTheViewWasShown(test: TestTrainer, times: number) {

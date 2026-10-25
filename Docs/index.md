@@ -10,11 +10,11 @@ The chess app helps a person become better at chess. It runs only in the browser
 
 ## Concepts
 - [Command and query bus](command-query-bus.md): the router that sends each command and each query to its handler.
-- [Line](line.md): the rules of one opening line, as commands and a query on the bus.
+- [Line](line.md): the rules of one opening line and its move tree with variations, as commands and queries on the bus.
 - [Lichess explorer](lichess-explorer.md): the adapter that gets the most common replies of a position from Lichess.
-- [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker.
+- [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker, one request at a time.
 - [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
-- [Trainer screen](trainer-screen.md): the screen that shows the rating, color and moves fields, the board, the eval bar with the eval number, the move list, the message, the accuracy and the status. It is dark, in the Darkwood style.
+- [Trainer screen](trainer-screen.md): the screen that shows New line and the cog with the rating, color and moves fields, the board, the eval bar with the eval number, the move list with its variations, the message, the accuracy and the status. It is dark, in the Darkwood style.
 
 ## Specs
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer.
