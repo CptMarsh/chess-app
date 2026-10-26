@@ -65,5 +65,5 @@
 }
 
 #changeToken {
-  align-self: flex-start;
+  margin-top: var(--space-2);
 }

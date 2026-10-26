@@ -35,7 +35,7 @@ The Lichess explorer needs a personal token. The app asks you for it and keeps i
 
 `open()` empties the field and `#tokenError`, hides **Cancel** when `tokens.read()` is `""`, and calls `showModal()`. Without a token, Escape does not close the dialog: the `cancel` event calls `preventDefault`.
 
-The dialog opens when the app starts with the source Lichess and no token, and when you click **Change token** on the [trainer screen](trainer-screen.md). The explorer reads the token for each request, so a new token is used from the next request.
+The dialog opens when the app starts with the source Lichess and no token, and when you click **Change token** in the settings of the [trainer screen](trainer-screen.md). The explorer reads the token for each request, so a new token is used from the next request.
 
 ### Darkwood style (`src/ui/token.css`)
 
@@ -52,7 +52,7 @@ The dialog opens when the app starts with the source Lichess and no token, and w
 
 - The token is in `localStorage` of the origin of the app. Other code on the same origin can read it. On GitHub Pages, all project pages of one user share the origin `<user>.github.io`.
 - Make the token with no scopes. Then it can only read public data.
-- If Lichess refuses the token, the message tells you to click **Change token**. The app does not remove the token.
+- If Lichess refuses the token, the message tells you to click **Change token** in the settings. The app does not remove the token.
 
 ## Tests
 

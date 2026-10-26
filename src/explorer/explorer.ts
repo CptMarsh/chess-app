@@ -21,7 +21,7 @@ export class LichessExplorer {
   async replies(fen: string, rating: number): Promise<Reply[]> {
     const token = this.#token();
     if (token === "") {
-      throw new Error("Save your Lichess token first. Click Change token.");
+      throw new Error("Save your Lichess token first. Click Change token in the settings.");
     }
     const query = new URLSearchParams({
       variant: "standard",
@@ -41,7 +41,7 @@ export class LichessExplorer {
       throw new Error("Lichess did not answer (network error).");
     }
     if (answer.status === 401) {
-      throw new Error("Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token.");
+      throw new Error("Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token in the settings.");
     }
     if (answer.status === 429) {
       throw new Error("Lichess got too many requests. Wait one minute, then start a new line.");

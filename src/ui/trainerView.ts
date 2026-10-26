@@ -30,6 +30,14 @@ const COG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke=
   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
 </svg>`;
 
+const COPY = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="9" y="9" width="13" height="13" rx="2"/>
+  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+</svg>`;
+const CHECK = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <polyline points="20 6 9 17 4 12"/>
+</svg>`;
+
 type Drop = { line: true } | { line: false; at: number };
 
 export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove" | "examine">, changeToken: () => void, store: Pick<SettingsStore, "source" | "username" | "save" | "sound" | "saveSound">, sounds: Pick<PieceSounds, "play">): () => void {
@@ -41,7 +49,10 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     <div id="panel">
       <div id="top">
         <button id="newLine">New line</button>
-        <button id="cog" popovertarget="settings" aria-label="Settings">${COG}</button>
+        <div id="tools">
+          <button id="copyPgn" aria-label="Copy PGN" title="Copy PGN">${COPY}</button>
+          <button id="cog" popovertarget="settings" aria-label="Settings">${COG}</button>
+        </div>
       </div>
       <div id="settings" popover>
         <label>Rating <input id="rating"></label>
@@ -50,6 +61,7 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
         <label>Source <select id="source"><option value="lichess">Lichess</option><option value="chessCom">chess.com</option></select></label>
         <label id="usernameLabel">Username <input id="username"></label>
         <label>Sound <input id="sound" type="checkbox"></label>
+        <button id="changeToken">Change token</button>
       </div>
       <div id="moveMenu" popover="manual"><button>Delete from here</button></div>
       <div id="moveList"></div>
@@ -60,10 +72,6 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       <p id="message"></p>
       <p id="accuracy"></p>
       <p id="status"></p>
-      <div id="bottom">
-        <button id="copyPgn">Copy PGN</button>
-        <button id="changeToken">Change token</button>
-      </div>
     </div>
   `;
   const rating = root.querySelector<HTMLInputElement>("#rating")!;
@@ -78,7 +86,10 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
   const settings = root.querySelector<HTMLElement>("#settings")!;
   const moveMenu = root.querySelector<HTMLElement>("#moveMenu")!;
   const copyPgn = root.querySelector<HTMLButtonElement>("#copyPgn")!;
-  root.querySelector("#changeToken")!.addEventListener("click", changeToken);
+  root.querySelector("#changeToken")!.addEventListener("click", () => {
+    settings.hidePopover();
+    changeToken();
+  });
   const moveList = root.querySelector<HTMLElement>("#moveList")!;
   const engineLines = root.querySelector<HTMLElement>("#engineLines")!;
   const message = root.querySelector<HTMLElement>("#message")!;
@@ -136,8 +147,8 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
 
   copyPgn.addEventListener("click", () => {
     navigator.clipboard.writeText(pgnText(bus.ask(new CurrentLine()).nodes)).then(() => {
-      copyPgn.textContent = "Copied";
-      setTimeout(() => { copyPgn.textContent = "Copy PGN"; }, COPIED_TIME);
+      showCopyButton(copyPgn, "Copied", CHECK);
+      setTimeout(() => showCopyButton(copyPgn, "Copy PGN", COPY), COPIED_TIME);
     }, () => {
       message.textContent = "The browser did not copy the PGN.";
     });
@@ -312,4 +323,10 @@ function engineLineItems({ fen, lines }: MoveNode): HTMLElement[] {
     );
     return element;
   });
+}
+
+function showCopyButton(button: HTMLButtonElement, name: string, icon: string) {
+  button.setAttribute("aria-label", name);
+  button.title = name;
+  button.innerHTML = icon;
 }

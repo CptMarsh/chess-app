@@ -71,7 +71,7 @@ test("A castling reply comes as standard UCI", async () => {
 });
 
 test.each([
-  [401, "Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token."],
+  [401, "Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token in the settings."],
   [429, "Lichess got too many requests. Wait one minute, then start a new line."],
   [503, "Lichess did not answer (status 503)."],
 ])("The status %i gives an error", async (status, message) => {
@@ -89,7 +89,7 @@ test("A network failure gives an error", async () => {
 test("An empty token gives an error and sends no request", async () => {
   const explorer = givenAnExplorerWithoutAToken();
   await whenYouAskForReplies(explorer, FEN, 1450);
-  thenTheErrorIs(explorer, "Save your Lichess token first. Click Change token.");
+  thenTheErrorIs(explorer, "Save your Lichess token first. Click Change token in the settings.");
   thenNoRequestWasSent(explorer);
 });
 

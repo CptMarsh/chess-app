@@ -13,20 +13,15 @@ body {
   outline-offset: 2px;
 }
 
-/* The board fills the height of the window, without the margins of the body (2 × 8 pixels).
-   The row also fits the width: the eval bar (0.06 × board), the board, the gap (16 pixels), the panel (0.8 × board) and the margins. */
+/* On a big screen, only the board grows. The panel keeps its text and gets 320 to 480 pixels.
+   The board fills the height of the window without the margins of the body (2 × 8 pixels),
+   and the width that the eval bar (24), the gap (16), the panel and the margins leave. */
 #app {
-  --board-size: max(400px, min(100vh - 16px, (100vw - 32px) / 1.86));
-  /* 1 pixel when the board is 400 pixels. The sizes of the screen are a number of units, so they grow with the board. */
-  --unit: calc(var(--board-size) / 400);
-  --space-1: calc(4 * var(--unit));
-  --space-2: calc(8 * var(--unit));
-  --space-4: calc(16 * var(--unit));
+  --panel-width: clamp(320px, 25vw, 480px);
+  --board-size: max(400px, min(100vh - 16px, 100vw - 56px - var(--panel-width)));
   display: flex;
   justify-content: center;
-  gap: 16px;
-  font-size: calc(15 * var(--unit));
-  line-height: calc(24 * var(--unit));
+  gap: var(--space-4);
 }
 
 #board {
@@ -34,13 +29,15 @@ body {
   height: var(--board-size);
 }
 
+/* The rank numbers of chessground go past the bottom of the board. When the board fills the height of the window, the page would scroll. */
 #boardRow {
   display: flex;
+  overflow-y: clip;
 }
 
 #evalBar {
   position: relative;
-  width: calc(24 * var(--unit));
+  width: 24px;
   height: var(--board-size);
   background: var(--surface-300);
   display: flex;
@@ -60,7 +57,7 @@ body {
   left: 0;
   right: 0;
   text-align: center;
-  font-size: calc(10 * var(--unit));
+  font-size: 10px;
   line-height: normal;
   font-weight: 600;
 }
@@ -89,7 +86,7 @@ body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  width: calc(320 * var(--unit));
+  width: var(--panel-width);
   height: var(--board-size);
   padding: var(--space-2);
   border-radius: var(--radius-md);
@@ -136,12 +133,13 @@ body {
   cursor: pointer;
 }
 
-#bottom {
+#tools {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 #cog,
+#copyPgn,
 #settings input,
 #settings select {
   padding: 2px var(--space-1);
@@ -152,24 +150,9 @@ body {
   font: inherit;
 }
 
-#cog {
-  display: flex;
-  cursor: pointer;
-}
-
-#cog svg {
-  width: calc(18 * var(--unit));
-  height: calc(18 * var(--unit));
-}
-
-/* The same style as Change token. */
+#cog,
 #copyPgn {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--ink-muted);
-  font: inherit;
+  display: flex;
   cursor: pointer;
 }
 
@@ -198,11 +181,11 @@ body {
 }
 
 #settings input {
-  width: calc(56 * var(--unit));
+  width: 56px;
 }
 
 #settings #username {
-  width: calc(120 * var(--unit));
+  width: 120px;
 }
 
 #settings #sound {
@@ -229,12 +212,12 @@ body {
 
 .row {
   display: grid;
-  grid-template-columns: calc(40 * var(--unit)) 1fr 1fr;
+  grid-template-columns: 40px 1fr 1fr;
   align-items: baseline;
 }
 
 .number {
-  font: 600 calc(12 * var(--unit)) / calc(16 * var(--unit)) var(--font-label);
+  font: 600 12px/16px var(--font-label);
   letter-spacing: 0.08em;
   color: var(--ink-muted);
 }
@@ -276,8 +259,8 @@ body {
 
 .engineLine .score {
   display: inline-block;
-  width: calc(48 * var(--unit));
-  font: 600 calc(12 * var(--unit)) / calc(16 * var(--unit)) var(--font-label);
+  width: 48px;
+  font: 600 12px/16px var(--font-label);
   letter-spacing: 0.08em;
 }
 
@@ -298,10 +281,9 @@ body {
 @media (max-width: 760px) {
   #app {
     --board-size: min(400px, 100vw - 40px);
-    --unit: 1px;
-    justify-content: flex-start;
     flex-direction: column;
     align-items: flex-start;
+    justify-content: flex-start;
   }
 
   /* The file letters of chessground go 24 pixels past the right side of the board. */
