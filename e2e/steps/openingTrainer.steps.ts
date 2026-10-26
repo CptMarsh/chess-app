@@ -243,6 +243,10 @@ Then("the move list is at the right of the board", async function (this: AppWorl
   assert.ok(moveList.x >= board.x + board.width, `The move list starts at ${moveList.x}. The board ends at ${board.x + board.width}.`);
 });
 
+Then("the text of the move list is {int} pixels", async function (this: AppWorld, size: number) {
+  assert.equal(await this.page.locator("#moveList").evaluate((element) => getComputedStyle(element).fontSize), `${size}px`);
+});
+
 Then("the page does not scroll down", async function (this: AppWorld) {
   const heights = await this.page.evaluate(() => ({ page: document.documentElement.scrollHeight, screen: document.documentElement.clientHeight }));
   assert.ok(heights.page <= heights.screen, `The page is ${heights.page} pixels high. The screen is ${heights.screen} pixels high.`);

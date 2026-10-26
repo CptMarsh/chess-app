@@ -18,7 +18,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker, one request at a time.
 - [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
 - [Deployment](deployment.md): the build, the base path `/chess-app/` and the workflow that publishes the app on GitHub Pages.
-- [Trainer screen](trainer-screen.md): the screen that shows New line and the cog with the rating, color, moves, source and username fields, the board, the eval bar with the eval number, the move list with its variations, the engine lines in explore mode, the message, the accuracy, the status, and the Copy PGN and Change token buttons. It is dark, in the Darkwood style. It grows with the window on a big screen.
+- [Trainer screen](trainer-screen.md): the screen that shows New line and the cog with the rating, color, moves, source and username fields, the board, the eval bar with the eval number, the move list with its variations, the engine lines in explore mode, the message, the accuracy, the status, and the Copy PGN and Change token buttons. It is dark, in the Darkwood style. On a big screen, the board grows with the window.
 
 ## Specs
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer.
@@ -31,7 +31,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Engine lines in explore mode](superpowers/specs/2026-10-25-engine-lines-design.md): in explore mode, the panel shows the 3 best Stockfish lines of the position on the board.
 - [Copy PGN](superpowers/specs/2026-10-25-copy-pgn-design.md): a button that puts the PGN of the move tree, with its variations, on the clipboard.
 - [Reply source](superpowers/specs/2026-10-25-reply-source-design.md): the replies and their % come from the Lichess explorer or from your own games on chess.com. The rating works with each source.
-- [Big screen view](superpowers/specs/2026-10-26-big-screen-design.md): on a big screen, the board, the panel and the text grow with the window.
+- [Big screen view](superpowers/specs/2026-10-26-big-screen-design.md): on a big screen, the board grows with the window. The panel gets 320 to 480 pixels. The text keeps its size.
 
 ## Process
 We use spec-driven development with a red-green-refactor loop. The unit specs are in `src/**/*.spec.ts` (Vitest). The e2e scenarios are in `e2e/features/` (Cucumber.js and Playwright).

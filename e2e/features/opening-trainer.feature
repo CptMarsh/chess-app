@@ -108,11 +108,12 @@ Feature: Opening trainer
     And the board has a "black knight" on "c6"
 
   Scenario: You use the app on a big monitor
-    Given the screen is 2560 by 1440 pixels
+    Given the screen is 1920 by 950 pixels
     And the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"
-    Then the board is more than 1000 pixels wide
+    Then the board is more than 900 pixels wide
     And the move list is at the right of the board
+    And the text of the move list is 15 pixels
     And the page does not scroll sideways
     And the page does not scroll down
 

@@ -41,7 +41,7 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | Part | Content |
 |---|---|
 | `#boardRow` | The eval bar and the board, side by side. |
-| `#panel` | The side panel, on the right of `#boardRow`. It is 320 units wide and has the height of the board. See "Big screen view". It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#navigation`, `#engineLines`, `#message`, `#accuracy`, `#status` and `#bottom`. |
+| `#panel` | The side panel, on the right of `#boardRow`. It is `--panel-width` wide (320 to 480 pixels) and has the height of the board. See "Big screen view". It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#navigation`, `#engineLines`, `#message`, `#accuracy`, `#status` and `#bottom`. |
 | `#top` | The top of the panel: **New line** (`#newLine`) on the left and the cog button (`#cog`) on the right. |
 | `#cog` | The cog button: an inline SVG in `currentColor`, with `aria-label="Settings"` and `popovertarget="settings"`. A click on the cog opens or closes `#settings`. |
 | `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color`, `Moves`, `Source` and `Username` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
@@ -53,9 +53,9 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | `Moves` field | The number of your moves in the line. The start value is `10`. |
 | **New line** button | Starts a new line with the rating, the color and the number of moves. |
 | `#board` | The board (`chessground`), `--board-size` × `--board-size` (at least 400 × 400 pixels on the desktop, see "Big screen view" and "Mobile view"). The side of the board is the color of the line. |
-| `#evalBar` | A vertical bar on the left of the board, in the same row. It is 24 units wide and has the height of the board. Its dark part is `surface-300`. It holds `#evalBarWhite`. It has `flex-direction: column-reverse`, so the light part starts at the bottom. It has the class `black` when the color is Black. Then the direction is `column`, so the light part starts at the top. |
+| `#evalBar` | A vertical bar on the left of the board, in the same row. It is 24 pixels wide and has the height of the board. Its dark part is `surface-300`. It holds `#evalBarWhite`. It has `flex-direction: column-reverse`, so the light part starts at the bottom. It has the class `black` when the color is Black. Then the direction is `column`, so the light part starts at the top. |
 | `#evalBarWhite` | The light part of the bar. Its height is 50 % when `shownEval` is `null`, and `evalBarPercent(shownEval)` % in all other conditions. |
-| `#evalBarText` | The eval number on the bar: `barText(shownEval)`, 10 units, weight 600. It has the class `whiteEnd` when `shownEval` is `null` or 0 or more, and `blackEnd` when it is less than 0. `whiteEnd` is at the White end of the bar, in dark text (`surface-100`). `blackEnd` is at the Black end, in light text (`ink`). The White end is at the bottom for White, and at the top for Black (`#evalBar.black`). |
+| `#evalBarText` | The eval number on the bar: `barText(shownEval)`, 10 pixels, weight 600. It has the class `whiteEnd` when `shownEval` is `null` or 0 or more, and `blackEnd` when it is less than 0. `whiteEnd` is at the White end of the bar, in dark text (`surface-100`). `blackEnd` is at the Black end, in light text (`ink`). The White end is at the bottom for White, and at the top for Black (`#evalBar.black`). |
 | `#moveList` | The items of `moveRows(nodes)`, in order: rows (`.row`) and variation lines (`.variations`). See "Move list". The list fills the free height of the panel and scrolls. |
 | `#navigation` | 4 buttons under `#moveList`: **Start** (⏮), **Back** (◀), **Forward** (▶) and **End** (⏭). The name of each button is its `aria-label`. See "Navigation". |
 | `#engineLines` | The engine lines of the position on the board, under `#navigation`. It shows only in explore mode. See "Engine lines". |
@@ -84,15 +84,15 @@ The screen is always dark. There is no switch. `trainer.css` sets `color-scheme:
 | **Copy PGN** and **Change token** | No background, `ink-muted` text, a 1-pixel `line-strong` border, the corners `radius-sm` and the padding `space-1` `space-2` |
 | `#settings` and `#moveMenu` | `surface-300`, with a 1-pixel `line-strong` border, the corners `radius-md` and the padding `space-4` |
 | `.variations` | `ink-muted`, with an indent of `space-4`. Its text wraps. |
-| `#engineLines` | `space-2` above it. The eval (`.score`) is in the `label` style, 48 units wide. The moves (`.moves`) are `ink-muted`. Each line stays on one line and ends in `…` when it is too long. The texts `The engine is thinking.` and `No moves.` are `ink-muted`. |
+| `#engineLines` | `space-2` above it. The eval (`.score`) is in the `label` style, 48 pixels wide. The moves (`.moves`) are `ink-muted`. Each line stays on one line and ends in `…` when it is too long. The texts `The engine is thinking.` and `No moves.` are `ink-muted`. |
 | Focus | A 2-pixel `amber` outline, 2 pixels from the part (`:focus-visible`) |
 | Eval bar | `ink` for the White part, `surface-300` for the Black part |
 
-The text is in the `body` style: Karla, 15 units, line height 24 units. The move numbers are in the `label` style: JetBrains Mono, 12 units, line height 16 units, weight 600, letter spacing 0.08em. The app does not use Fraunces, because the screen has no headings. The spaces are `space-1` (4 units), `space-2` (8 units) and `space-4` (16 units). A unit is `--unit`: 1 pixel when the board is 400 pixels. See "Big screen view".
+The text is in the `body` style: Karla, 15 pixels, line height 24 pixels. The move numbers are in the `label` style: JetBrains Mono, 12 pixels, weight 600, letter spacing 0.08em. The app does not use Fraunces, because the screen has no headings. The spaces are `space-1` (4 pixels), `space-2` (8 pixels) and `space-4` (16 pixels). These sizes do not change with the size of the screen.
 
 The fonts come from the npm packages `@fontsource/karla` (weights 400 and 600) and `@fontsource/jetbrains-mono` (weight 600). Vite puts the font files in the build, so the app sends no font request to other sites, and the fonts also work offline.
 
-The board (`chessground.brown.css`) keeps its colors. In `#settings`, the inputs are 56 units wide, and `#username` is 120 units wide. The cog icon is 18 × 18 units.
+The board (`chessground.brown.css`) keeps its colors. In `#settings`, the inputs are 56 pixels wide, and `#username` is 120 pixels wide.
 
 ## Move list
 
@@ -157,11 +157,11 @@ The navigation buttons do the same: **Start** is ↑, **Back** is ←, **Forward
 
 ## Big screen view
 
-See the spec [Big screen view](superpowers/specs/2026-10-26-big-screen-design.md). On a screen wider than 760 pixels, the app grows with the window:
+See the spec [Big screen view](superpowers/specs/2026-10-26-big-screen-design.md). On a screen wider than 760 pixels, only the board grows with the window. The text and the other parts keep their size.
 
-- `--board-size` (on `#app`) is `max(400px, min(100vh - 16px, (100vw - 32px) / 1.86))`. The board fills the height of the window, without the margins of the body (2 × 8 pixels). The row also fits the width of the window: the eval bar (0.06 × board), the board, the gap (16 pixels), the panel (0.8 × board) and the margins. The board is never smaller than 400 pixels.
-- `--unit` (on `#app`) is `calc(var(--board-size) / 400)`. The text, the line heights, the eval bar, the panel, the spaces `space-1`, `space-2` and `space-4`, the move number column (40 units), the engine score, the fields in `#settings` and the cog icon are a number of units. Thus the screen keeps its proportions at each size. `#app` redefines the 3 spaces of Darkwood with the unit.
-- The gap between `#boardRow` and `#panel` (16 pixels), the borders, the radii and the focus outline do not grow. The coordinates of chessground keep their size, because chessground places them in pixels.
+- `--panel-width` (on `#app`) is `clamp(320px, 25vw, 480px)`. `#panel` has this width.
+- `--board-size` (on `#app`) is `max(400px, min(100vh - 16px, 100vw - 56px - var(--panel-width)))`. The board fills the height of the window, without the margins of the body (2 × 8 pixels). It also fits the width that the eval bar (24 pixels), the gap (16 pixels), the panel and the margins leave. It is never smaller than 400 pixels. `#panel` and the eval bar have the height of the board.
+- `#boardRow` has `overflow-y: clip`, because a rank number of chessground goes past the bottom of the board. When the board fills the height of the window, the page would scroll.
 - `#app` is in the center of the window, from left to right.
 
 ## Mobile view
@@ -169,7 +169,7 @@ See the spec [Big screen view](superpowers/specs/2026-10-26-big-screen-design.md
 `index.html` has `<meta name="viewport" content="width=device-width, initial-scale=1">`. When the screen is 760 pixels wide or less (`@media (max-width: 760px)`):
 
 - `#app` is a column. `#panel` is under `#boardRow`. Thus the move list is under the board. **New line** and the cog stay at the top of the panel.
-- `--unit` is `1px`, and `#app` starts at the left.
+- `#app` starts at the left.
 - `--board-size` (on `#app`) is `min(400px, 100vw - 40px)`: the width of the screen without the eval bar (24 pixels) and the margins of the body (2 × 8 pixels). The board and the eval bar get this size. Chessground sees the new size with its `ResizeObserver`.
 - `#panel` has the width of the board row and no fixed height. `#moveList` has a maximum height of 240 pixels and scrolls.
 - `#boardRow` has `overflow-x: clip`, because the file letters of chessground go 24 pixels past the right side of the board. Thus the page does not scroll sideways.
@@ -269,7 +269,7 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 - The engine lines scenario uses the steps `the engine shows {int} lines from {string}` and `the engine lines are hidden`. The first waits for that number of `.engineLine` items. It checks that each `.score` is `+0.3`, `-1.2`, `0.0`, `+M` or `-M` in form, and that each `.moves` starts with the text (for example `1... `). The real Stockfish runs, so the step does not check the moves.
 - The Copy PGN scenario plays a line with a variation and clicks **Copy PGN**. The step `the clipboard has {string}` reads `navigator.clipboard.readText()`. Each browser context gets the permissions `clipboard-read` and `clipboard-write`. The step `the Copy PGN button shows {string}` checks the text `Copied`.
 - The phone scenario uses the step `the screen is {int} by {int} pixels` (`page.setViewportSize`), with 390 × 844 pixels. The step `the move list is under the board` checks that the top of `#moveList` is under the bottom of `#board`. The step `the page does not scroll sideways` checks that the `scrollWidth` of the page is not more than its `clientWidth`. The scenario clicks the navigation buttons with `the player clicks {string}`.
-- The big monitor scenario uses the screen 2560 × 1440 pixels. The step `the board is more than {int} pixels wide` checks the width of `#board`. The step `the move list is at the right of the board` checks that the left of `#moveList` is at the right of the board. The step `the page does not scroll down` checks that the `scrollHeight` of the page is not more than its `clientHeight`.
+- The big monitor scenario uses the screen 1920 × 950 pixels: a 1080p monitor without the bars of the browser, where the height of the window limits the board. The step `the board is more than {int} pixels wide` checks the width of `#board`. The step `the move list is at the right of the board` checks that the left of `#moveList` is at the right of the board. The step `the text of the move list is {int} pixels` checks the computed `font-size` of `#moveList`. The step `the page does not scroll down` checks that the `scrollHeight` of the page is not more than its `clientHeight`.
 - The explorer answer in the e2e tests is one row of the table in the feature. The row is the full move number of the FEN (field 6), counted from 1. The third column of the row is the % of the move. The answer has the position total 100, so the screen shows this %.
 - A scenario that navigates after its moves first waits for `the status is "your move"`. `AppWorld.play` returns when the screen shows your move, before the reply comes. When the reply comes, `current` changes and `viewed` goes back to `null`. Thus a navigation before the reply is lost. On a slow computer, for example in CI, the reply comes late, so a scenario without the wait fails only sometimes.
 - `AppWorld.navigate(action)` stops a navigation before the reply. The navigation steps use it: `the player presses {string}` with an arrow key, `the player clicks {string}` with `Start`, `Back`, `Forward` or `End`, and `the player clicks the move {string}`. When `#status` is not `Status: your move`, `Status: try again` or `Status: line ended`, the step fails at once with the status and the step to add. Thus a scenario without the wait fails each time, not only on a slow computer.
