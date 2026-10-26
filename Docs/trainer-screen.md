@@ -257,7 +257,7 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 2. It makes a `StockfishEngine` with `` new Worker(`${import.meta.env.BASE_URL}stockfish/stockfish-19-lite-single.js`) ``.
 3. It makes a `TokenStore` and a `SettingsStore` with `() => localStorage`. It makes a `SourceExplorer` with `() => settings.source()`, a `LichessExplorer` with `() => tokens.read()` and a `ChessComExplorer` with `() => settings.username()`.
 4. It makes the `Trainer` with a `show` function that calls the `show` function of the screen.
-5. It calls `mountTokenDialog(document.body, tokens)`. It gives its `open` function to `mountTrainer` as `changeToken`. It gives the settings store to `mountTrainer` as `settings`, and a new `PieceSounds` as `sounds`. Then it calls `show()`.
+5. It calls `mountTokenDialog(document.body, tokens)`. It gives its `open` function to `mountTrainer` as `changeToken`. It gives the settings store to `mountTrainer` as `settings`, and a `PieceSounds` with the addresses of `move.wav` and `capture.wav` as `sounds`. Then it calls `show()`.
 6. If `settings.source()` is `"lichess"` and `tokens.read()` is `""`, it opens the token dialog.
 
 ## Setup

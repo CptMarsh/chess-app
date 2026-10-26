@@ -1,42 +1,49 @@
 import { expect } from "vitest";
-import { PieceSounds, pieceSamples, type Sound } from "./sound.ts";
+import { PieceSounds, type Sound } from "./sound.ts";
 
-const RATE = 48000;
+const FILES: Record<Sound, string> = { move: "/move.wav", capture: "/capture.wav" };
 
-type FakeBuffer = { samples: Float32Array | null };
+type FakeBuffer = { url: string };
 type TestContext = {
   sounds: PieceSounds;
   made: number;
-  buffers: FakeBuffer[];
-  started: FakeBuffer[];
+  fetched: string[];
+  decoded: string[];
+  started: string[];
   resumed: number;
 };
+// The file that fails one time, and how.
+type Failure = { sound: Sound; when: "fetch" | "decode" } | null;
 
-function contextOf(state: AudioContextState, cannotBeMade = false): TestContext {
-  const test: TestContext = { sounds: undefined!, made: 0, buffers: [], started: [], resumed: 0 };
+function contextOf(state: AudioContextState, cannotBeMade = false, failure: Failure = null): TestContext {
+  const test: TestContext = { sounds: undefined!, made: 0, fetched: [], decoded: [], started: [], resumed: 0 };
+  let failing = failure;
+  const failsNow = (url: string, when: "fetch" | "decode") => {
+    if (failing === null || FILES[failing.sound] !== url || failing.when !== when) return false;
+    failing = null;
+    return true;
+  };
+  const fetchFile = (url: string) => {
+    test.fetched.push(url);
+    if (failsNow(url, "fetch")) return Promise.reject(new TypeError("Failed to fetch"));
+    return Promise.resolve(new TextEncoder().encode(url).buffer as ArrayBuffer);
+  };
   const make = () => {
     test.made += 1;
     if (cannotBeMade) throw new DOMException("No audio.", "NotSupportedError");
     const destination = {};
     return {
       state,
-      sampleRate: RATE,
       destination,
       resume: () => {
         test.resumed += 1;
         return Promise.reject(new DOMException("Not allowed.", "NotAllowedError"));
       },
-      createBuffer: (channels: number, length: number, rate: number) => {
-        expect([channels, rate]).toEqual([1, RATE]);
-        const buffer: FakeBuffer & { copyToChannel: (samples: Float32Array, channel: number) => void } = {
-          samples: null,
-          copyToChannel: (samples, channel) => {
-            expect([channel, samples.length]).toEqual([0, length]);
-            buffer.samples = samples;
-          },
-        };
-        test.buffers.push(buffer);
-        return buffer;
+      decodeAudioData: (data: ArrayBuffer) => {
+        const url = new TextDecoder().decode(data);
+        test.decoded.push(url);
+        if (failsNow(url, "decode")) return Promise.reject(new DOMException("Unable to decode.", "EncodingError"));
+        return Promise.resolve({ url });
       },
       createBufferSource: () => {
         const source = {
@@ -45,14 +52,14 @@ function contextOf(state: AudioContextState, cannotBeMade = false): TestContext 
           connect: (node: unknown) => { source.connected = node; },
           start: () => {
             expect(source.connected).toBe(destination);
-            test.started.push(source.buffer!);
+            test.started.push(source.buffer!.url);
           },
         };
         return source;
       },
     } as unknown as AudioContext;
   };
-  test.sounds = new PieceSounds(make);
+  test.sounds = new PieceSounds(FILES, make, fetchFile);
   return test;
 }
 
@@ -68,17 +75,33 @@ export function givenAContextThatCannotBeMade(): TestContext {
   return contextOf("running", true);
 }
 
-export function whenYouPlay(test: TestContext, ...sounds: Sound[]) {
-  for (const sound of sounds) test.sounds.play(sound);
+export function givenAFileThatDoesNotLoad(sound: Sound): TestContext {
+  return contextOf("running", false, { sound, when: "fetch" });
+}
+
+export function givenAFileThatDoesNotDecode(sound: Sound): TestContext {
+  return contextOf("running", false, { sound, when: "decode" });
+}
+
+// Plays each sound, and after each sound waits until the loads are done, as a move comes after the sound of the move before.
+export async function whenYouPlay(test: TestContext, ...sounds: Sound[]) {
+  for (const sound of sounds) {
+    test.sounds.play(sound);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
 }
 
 export function thenTheSoundsArePlayed(test: TestContext, sounds: Sound[]) {
-  expect(test.started.map(({ samples }) => samples)).toEqual(sounds.map((sound) => pieceSamples(sound, RATE)));
+  expect(test.started).toEqual(sounds.map((sound) => FILES[sound]));
 }
 
-export function thenTheContextIsMadeOnce(test: TestContext, buffers: number) {
+export function thenBothFilesAreLoaded(test: TestContext) {
+  expect([...test.fetched].sort()).toEqual(["/capture.wav", "/move.wav"]);
+  expect([...test.decoded].sort()).toEqual(["/capture.wav", "/move.wav"]);
+}
+
+export function thenTheContextIsMadeOnce(test: TestContext) {
   expect(test.made).toBe(1);
-  expect(test.buffers).toHaveLength(buffers);
 }
 
 export function thenTheContextIsResumed(test: TestContext) {
@@ -87,25 +110,6 @@ export function thenTheContextIsResumed(test: TestContext) {
 
 export function thenThereIsSilence(test: TestContext) {
   expect(test.made).toBe(1);
+  expect(test.fetched).toEqual([]);
   expect(test.started).toEqual([]);
-}
-
-function peak(samples: Float32Array): number {
-  return samples.reduce((top, sample) => Math.max(top, Math.abs(sample)), 0);
-}
-
-export function thenTheSamplesAre(sound: Sound, sampleRate: number, length: number) {
-  const samples = pieceSamples(sound, sampleRate);
-  expect(samples).toHaveLength(length);
-  expect(peak(samples)).toBeLessThanOrEqual(1);
-  expect(peak(samples)).toBeGreaterThan(0.1);
-  expect(Math.abs(samples.at(-1)!)).toBeLessThan(0.01);
-}
-
-export function thenTheCaptureIsLouder() {
-  expect(peak(pieceSamples("capture", RATE))).toBeGreaterThan(peak(pieceSamples("move", RATE)));
-}
-
-export function thenTheSamplesAreTheSame() {
-  expect(pieceSamples("capture", RATE)).toEqual(pieceSamples("capture", RATE));
 }

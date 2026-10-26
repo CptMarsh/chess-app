@@ -1,35 +1,47 @@
 import { test } from "vitest";
 import {
-  givenAContext, givenAContextThatCannotBeMade, givenASuspendedContext, thenTheCaptureIsLouder, thenTheContextIsMadeOnce, thenTheContextIsResumed,
-  thenTheSamplesAre, thenTheSamplesAreTheSame, thenTheSoundsArePlayed, thenThereIsSilence, whenYouPlay,
+  givenAContext, givenAContextThatCannotBeMade, givenAFileThatDoesNotDecode, givenAFileThatDoesNotLoad, givenASuspendedContext, thenBothFilesAreLoaded,
+  thenTheContextIsMadeOnce, thenTheContextIsResumed, thenTheSoundsArePlayed, thenThereIsSilence, whenYouPlay,
 } from "./sound.steps.ts";
 
-test.each([["move", 3840], ["capture", 6720]] as const)("The %s sound has %i samples at 48000 Hz, from -1 to 1, and fades out", (sound, length) =>
-  thenTheSamplesAre(sound, 48000, length));
-test("The capture sound is louder than the move sound", () => thenTheCaptureIsLouder());
-test("The samples are the same at each call", () => thenTheSamplesAreTheSame());
-
-test("Each sound plays a buffer of its samples", () => {
+test("Each sound plays the buffer of its file", async () => {
   const context = givenAContext();
-  whenYouPlay(context, "move", "capture", "move");
+  await whenYouPlay(context, "move", "capture", "move");
   thenTheSoundsArePlayed(context, ["move", "capture", "move"]);
 });
 
-test("The context and each buffer are made one time", () => {
+test("The first sound loads both files", async () => {
   const context = givenAContext();
-  whenYouPlay(context, "move", "move", "capture", "capture");
-  thenTheContextIsMadeOnce(context, 2);
+  await whenYouPlay(context, "move");
+  thenBothFilesAreLoaded(context);
 });
 
-test("A suspended context is resumed", () => {
+test("The context is made one time, and each file is fetched and decoded one time", async () => {
+  const context = givenAContext();
+  await whenYouPlay(context, "move", "move", "capture", "capture");
+  thenTheContextIsMadeOnce(context);
+  thenBothFilesAreLoaded(context);
+});
+
+test("A suspended context is resumed", async () => {
   const context = givenASuspendedContext();
-  whenYouPlay(context, "move");
+  await whenYouPlay(context, "move");
   thenTheContextIsResumed(context);
   thenTheSoundsArePlayed(context, ["move"]);
 });
 
-test("A context that cannot be made gives silence", () => {
+test("A context that cannot be made gives silence and no fetch", async () => {
   const context = givenAContextThatCannotBeMade();
-  whenYouPlay(context, "move", "capture");
+  await whenYouPlay(context, "move", "capture");
   thenThereIsSilence(context);
+});
+
+test.each([
+  ["does not load", givenAFileThatDoesNotLoad], ["does not decode", givenAFileThatDoesNotDecode],
+])("A file that %s gives silence, and the next sound tries again", async (_name, given) => {
+  const context = given("capture");
+  await whenYouPlay(context, "capture");
+  thenTheSoundsArePlayed(context, []);
+  await whenYouPlay(context, "capture");
+  thenTheSoundsArePlayed(context, ["capture"]);
 });
