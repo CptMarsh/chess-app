@@ -106,6 +106,15 @@ Feature: Opening trainer
     Then the highlighted move is "Nc6"
     And the board has a "black knight" on "c6"
 
+  Scenario: You use the app on a big monitor
+    Given the screen is 2560 by 1440 pixels
+    And the player starts a line with the rating "1450"
+    When the player plays "e2e4 g1f3"
+    Then the board is more than 1000 pixels wide
+    And the move list is at the right of the board
+    And the page does not scroll sideways
+    And the page does not scroll down
+
   Scenario: You explore from an old position
     Given the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"
