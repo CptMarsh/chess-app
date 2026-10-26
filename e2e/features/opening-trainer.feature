@@ -93,7 +93,8 @@ Feature: Opening trainer
     Given the screen is 390 by 844 pixels
     And the player starts a line with the rating "1450"
     When the player plays "e2e4 g1f3"
-    Then the move list is under the board
+    Then the status is "your move"
+    And the move list is under the board
     And the page does not scroll sideways
     When the player clicks "Back"
     Then the highlighted move is "Nf3"
