@@ -205,6 +205,11 @@ body {
   width: calc(120 * var(--unit));
 }
 
+#settings #sound {
+  width: auto;
+  accent-color: var(--oak);
+}
+
 #settings label[hidden] {
   display: none;
 }

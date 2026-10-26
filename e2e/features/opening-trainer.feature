@@ -239,3 +239,23 @@ Feature: Opening trainer
     And the Lichess token is removed
     When the player reloads the app
     Then the token dialog is closed
+
+  Scenario: You hear the moves
+    Given the player starts a line with the rating "1450"
+    When the player plays "e2e4"
+    Then the moves are "1. e4 e5 (42%)"
+    And the status is "your move"
+    And the app played 2 sounds
+    When the player presses "ArrowLeft"
+    Then the app played 2 sounds
+    When the player clicks "Forward"
+    Then the app played 3 sounds
+
+  Scenario: You turn the sound off
+    Given the player turns the sound off
+    And the player starts a line with the rating "1450"
+    When the player plays "e2e4"
+    Then the moves are "1. e4 e5 (42%)"
+    And the app played 0 sounds
+    When the player reloads the app
+    Then the sound is off

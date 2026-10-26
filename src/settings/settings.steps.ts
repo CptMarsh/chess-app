@@ -40,3 +40,15 @@ export function thenTheStoredSettingsAre(test: TestStore, source: Source, userna
   expect(test.items.get("replySource")).toBe(source);
   expect(test.items.get("chessComUsername")).toBe(username);
 }
+
+export function whenYouSaveTheSound(test: TestStore, on: boolean) {
+  test.store.saveSound(on);
+}
+
+export function thenTheSoundIs(test: TestStore, on: boolean) {
+  expect(test.store.sound()).toBe(on);
+}
+
+export function thenTheStoredSoundIs(test: TestStore, value: string) {
+  expect(test.items.get("pieceSound")).toBe(value);
+}
