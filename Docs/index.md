@@ -13,12 +13,13 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Line](line.md): the rules of one opening line and its move tree with variations, as commands and queries on the bus.
 - [Lichess explorer](lichess-explorer.md): the adapter that gets the most common replies of a position from Lichess.
 - [chess.com explorer and source explorer](chess-com-explorer.md): the adapter that gets the replies of a position from your own chess.com games, and the adapter that sends each request to the explorer of the chosen source.
-- [Settings store](settings.md): the adapter that keeps the source of the replies and your chess.com username in the browser.
+- [Settings store](settings.md): the adapter that keeps the source of the replies, your chess.com username and the Sound switch in the browser.
+- [Piece sounds](sound.md): the adapter that makes the move sound and the capture sound with the Web Audio API and plays them.
 - [Token store and token dialog](token.md): the adapter that keeps your Lichess token in the browser, and the dialog that asks you for it.
 - [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker, one request at a time.
 - [Trainer](trainer.md): the one async unit. It waits for the engine and the explorer, then sends a command with the result.
 - [Deployment](deployment.md): the build, the base path `/chess-app/` and the workflow that publishes the app on GitHub Pages.
-- [Trainer screen](trainer-screen.md): the screen that shows New line and the cog with the rating, color, moves, source and username fields, the board, the eval bar with the eval number, the move list with its variations, the engine lines in explore mode, the message, the accuracy, the status, and the Copy PGN and Change token buttons. It is dark, in the Darkwood style.
+- [Trainer screen](trainer-screen.md): the screen that shows New line and the cog with the rating, color, moves, source, username and sound fields, the board, the eval bar with the eval number, the move list with its variations, the engine lines in explore mode, the message, the accuracy, the status, and the Copy PGN and Change token buttons. It is dark, in the Darkwood style.
 
 ## Specs
 - [Opening trainer](superpowers/specs/2026-10-23-opening-trainer-design.md): the design of the opening trainer.
@@ -31,6 +32,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Engine lines in explore mode](superpowers/specs/2026-10-25-engine-lines-design.md): in explore mode, the panel shows the 3 best Stockfish lines of the position on the board.
 - [Copy PGN](superpowers/specs/2026-10-25-copy-pgn-design.md): a button that puts the PGN of the move tree, with its variations, on the clipboard.
 - [Reply source](superpowers/specs/2026-10-25-reply-source-design.md): the replies and their % come from the Lichess explorer or from your own games on chess.com. The rating works with each source.
+- [Piece sounds](superpowers/specs/2026-10-26-piece-sounds-design.md): a move sound and a capture sound when a move comes on the board, and a Sound switch in the cog.
 
 ## Process
 We use spec-driven development with a red-green-refactor loop. The unit specs are in `src/**/*.spec.ts` (Vitest). The e2e scenarios are in `e2e/features/` (Cucumber.js and Playwright).

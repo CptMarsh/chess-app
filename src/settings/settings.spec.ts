@@ -1,6 +1,7 @@
 import { test } from "vitest";
 import {
-  givenABlockedStorage, givenAStorageThatRefusesWrites, givenAStorageWith, thenTheSettingsAre, thenTheStoredSettingsAre, whenYouSave,
+  givenABlockedStorage, givenAStorageThatRefusesWrites, givenAStorageWith, thenTheSettingsAre, thenTheSoundIs, thenTheStoredSettingsAre, thenTheStoredSoundIs,
+  whenYouSave, whenYouSaveTheSound,
 } from "./settings.steps.ts";
 
 test("The stored source and username are read", () => {
@@ -40,4 +41,22 @@ test("A blocked storage keeps saved settings in memory", () => {
   const store = givenABlockedStorage();
   whenYouSave(store, "chessCom", "Magnus");
   thenTheSettingsAre(store, "chessCom", "Magnus");
+});
+
+test.each([[{}, true], [{ pieceSound: "on" }, true], [{ pieceSound: "loud" }, true], [{ pieceSound: "off" }, false]])(
+  "The stored sound %j gives %s", (stored, on) => thenTheSoundIs(givenAStorageWith(stored), on));
+
+test("A blocked storage gives the sound on", () => thenTheSoundIs(givenABlockedStorage(), true));
+
+test.each([[false, "off"], [true, "on"]])("A saved sound %s is written as %s", (on, value) => {
+  const store = givenAStorageWith({});
+  whenYouSaveTheSound(store, on);
+  thenTheSoundIs(store, on);
+  thenTheStoredSoundIs(store, value);
+});
+
+test("A refused write keeps the sound in memory", () => {
+  const store = givenAStorageThatRefusesWrites();
+  whenYouSaveTheSound(store, false);
+  thenTheSoundIs(store, false);
 });

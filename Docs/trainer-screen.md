@@ -1,16 +1,16 @@
 ---
 type: component
 title: Trainer screen
-description: The screen of the opening trainer. It shows New line and the cog with the rating, color, moves, source and username fields, the board, the eval bar with the eval number, the move list with its variations, the navigation buttons, the engine lines in explore mode, the message, the accuracy, the status, and the Copy PGN and Change token buttons.
+description: The screen of the opening trainer. It shows New line and the cog with the rating, color, moves, source, username and sound fields, the board, the eval bar with the eval number, the move list with its variations, the navigation buttons, the engine lines in explore mode, the message, the accuracy, the status, and the Copy PGN and Change token buttons.
 resource: src/ui/trainerView.ts
-tags: [ui, screen, chessground, variations, popover, mobile, engine, pgn, clipboard]
+tags: [ui, screen, chessground, variations, popover, mobile, engine, pgn, clipboard, sound]
 ---
 
 # Trainer screen
 
 The screen shows the opening trainer in the browser. It holds no chess rules. It gets all its data from the `CurrentLine` and `ExploreMoves` queries. `src/ui/` does not use `async` or `await`.
 
-`mountTrainer(root, bus, trainer, changeToken, settings)` adds the parts of the screen to `root`. It gives the `show` function. The trainer calls `show()` after each command.
+`mountTrainer(root, bus, trainer, changeToken, settings, sounds)` adds the parts of the screen to `root`. It gives the `show` function. The trainer calls `show()` after each command.
 
 ```
 +----+------------------+  +---------------------------------+
@@ -44,12 +44,13 @@ The screen shows the opening trainer in the browser. It holds no chess rules. It
 | `#panel` | The side panel, on the right of `#boardRow`. It is 320 pixels wide and has the height of the board (400 pixels). It holds `#top`, `#settings`, `#moveMenu`, `#moveList`, `#navigation`, `#engineLines`, `#message`, `#accuracy`, `#status` and `#bottom`. |
 | `#top` | The top of the panel: **New line** (`#newLine`) on the left and the cog button (`#cog`) on the right. |
 | `#cog` | The cog button: an inline SVG in `currentColor`, with `aria-label="Settings"` and `popovertarget="settings"`. A click on the cog opens or closes `#settings`. |
-| `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color`, `Moves`, `Source` and `Username` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
+| `#settings` | A popover (the `popover` attribute) with the `Rating`, `Color`, `Moves`, `Source`, `Username` and `Sound` fields, each on its own line. A click outside the popover, or the Escape key, closes it. The browser does this. `mountTrainer` calls `showPopover()`, so the popover is open when the app starts. A click on **New line** is outside the popover, so it closes the popover. When it opens, the screen puts it under the cog, with its right side at the right side of the cog. |
 | `#moveMenu` | The menu of a variation move: a popover with one button, **Delete from here**. See "Delete". |
 | `Rating` field | The rating that you type before each line. |
 | `Color` field (`#color`) | A select with `White` and `Black`. White is the default. |
 | `Source` field (`#source`) | A select with `Lichess` (`lichess`) and `chess.com` (`chessCom`). It is the source of the replies and their %. It starts with `settings.source()`. A change calls `settings.save(source, username)`. See [Settings store](settings.md). |
 | `Username` field (`#username`) | Your chess.com username. It starts with `settings.username()`. Each input calls `settings.save(source, username)`. Its label (`#usernameLabel`) is hidden when the source is Lichess. |
+| `Sound` field (`#sound`) | A checkbox that turns the piece sounds on and off. It starts with `settings.sound()`. A change calls `settings.saveSound(checked)`. Its tick has the color `oak`. See "Piece sounds". |
 | `Moves` field | The number of your moves in the line. The start value is `10`. |
 | **New line** button | Starts a new line with the rating, the color and the number of moves. |
 | `#board` | The board (`chessground`), `--board-size` × `--board-size` (400 × 400 pixels on the desktop, see "Mobile view"). The side of the board is the color of the line. |
@@ -111,6 +112,7 @@ The board (`chessground.brown.css`) keeps its colors. In `#settings`, the inputs
 - **Variation move.** In all other conditions, you move the side to move of the position, with the moves from `ExploreMoves(at)`. A drop calls `trainer.exploreMove(at, move)`. Then the screen sets `viewed` to the child of `at` with this move (`childOf`), and calls `show()`. The first part of `exploreMove` puts the node in the tree before the call gives its promise, so the child is there.
 - The board shows each arrow of the line in green, only at the current position. After a mistake, there is one arrow for each acceptable move. The engine shows no arrows in a variation.
 - The board marks no last move.
+- The screen plays the sound of the shown move. See "Piece sounds".
 - The bar gets `shownEval = barEval(pathEvals(nodes, at))`: the evals on the path from the start position to `at`. Then it sets the height of `#evalBarWhite` and the text of `#evalBarText`.
 - Eval bar rule: the bar shows the eval of the position on the board. When that eval is `null`, the bar shows the eval of the nearest earlier position on the path that has an eval. When no earlier position has an eval, the bar is at 50 and has no number. For example, while the engine checks your move or a variation move, the bar shows the eval of the position before it. For Black, the start position has no eval, so the bar is at 50 there.
 - The **New line** button is enabled only when the status is `yourMove`, `tryAgain` or `ended`. In these statuses, no answer is pending. Thus a late answer cannot go into a different line. You can explore in the same statuses.
@@ -205,6 +207,12 @@ A click on **Copy PGN** asks `CurrentLine` and gives `pgnText(nodes)` to `naviga
 - If the browser does not copy, `#message` shows `The browser did not copy the PGN.`
 - The PGN has no tags and no %. Lichess and chess programs accept a PGN with only movetext. For example `1. e4 e5 2. Nf3 (2. Bc4 Nf6) 2... Nc6 *`.
 
+## Piece sounds
+
+`show()` keeps `shownAt`: the id of the node that the board showed at the last `show()`. It calls `soundOf(nodes, shownAt, at)`, then sets `shownAt` to `at`. When the result is not `null` and `settings.sound()` is `true`, it calls `sounds.play(result)`. See [Piece sounds](sound.md).
+
+Thus a sound plays only when the board goes one move forward: your move, the reply, a move in explore mode, **Forward**, the right arrow, and a click on the next move. Back, Start, End, a click on an other move, a delete and a new line are silent. When the line takes back a mistake, the board goes back to the position before it, so that is silent too.
+
 ## Your move
 
 When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to `trainer.yourMove` or `trainer.exploreMove`. A pawn on rank 8 or rank 1 always becomes a queen. For this pawn, the screen adds `q`, for example `b7a8q`.
@@ -227,6 +235,7 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 | `evalBarPercent(centipawns)` | `50 + 50 × (2 ÷ (1 + e^(−0.00368208 × centipawns)) − 1)`. `10000` gives 100. `-10000` gives 0. `0` gives 50. |
 | `lineScore(centipawns)` | The eval of an engine line, from the White side, with its sign: `30` gives `+0.3`, `-120` gives `-1.2`, `10000` gives `+M` and `-10000` gives `-M`. A value that rounds to `0.0` has no sign. |
 | `lineMoves(fen, sans)` | The moves of an engine line from the position of `fen`, with PGN move numbers. The first move of Black has `...`. For example, after `1. e4`, `["e5", "Nf3"]` gives `1... e5 2. Nf3`. |
+| `soundOf(nodes, before, at)` | `"capture"` or `"move"` when the node `at` has the parent `before`: `"capture"` when its `san` has `x`, else `"move"`. Castling and checks are a move. In all other conditions, and when `before` is `null`, it gives `null`. |
 | `barEval(evals)` | The last value that is not `null` in `evals`. If all are `null`, it gives `null`. For example, `[30, null]` gives 30. |
 
 ## Start of the app (`src/main.ts`)
@@ -237,7 +246,7 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 2. It makes a `StockfishEngine` with `` new Worker(`${import.meta.env.BASE_URL}stockfish/stockfish-19-lite-single.js`) ``.
 3. It makes a `TokenStore` and a `SettingsStore` with `() => localStorage`. It makes a `SourceExplorer` with `() => settings.source()`, a `LichessExplorer` with `() => tokens.read()` and a `ChessComExplorer` with `() => settings.username()`.
 4. It makes the `Trainer` with a `show` function that calls the `show` function of the screen.
-5. It calls `mountTokenDialog(document.body, tokens)`. It gives its `open` function to `mountTrainer` as `changeToken`. It gives the settings store to `mountTrainer` as `settings`. Then it calls `show()`.
+5. It calls `mountTokenDialog(document.body, tokens)`. It gives its `open` function to `mountTrainer` as `changeToken`. It gives the settings store to `mountTrainer` as `settings`, and a new `PieceSounds` as `sounds`. Then it calls `show()`.
 6. If `settings.source()` is `"lichess"` and `tokens.read()` is `""`, it opens the token dialog.
 
 ## Setup
@@ -250,13 +259,14 @@ When you drop a piece, the screen sends the move in UCI, for example `e2e4`, to 
 ## Tests
 
 - `src/ui/text.spec.ts` (Vitest) tests the text functions. `src/ui/navigation.spec.ts` tests the navigation functions.
-- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 15 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and its refutation, one for the navigation, one for a phone, one for an exploration from an old position, one for the engine lines, one for a delete, one for Copy PGN, one for the cog, and 2 for the token dialog. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` and the fixed refutation `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. The real Stockfish gives the same scores and lines each time, so they do not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. Before each scenario, an init script puts the token `e2e-token` in `localStorage`, when there is no token. Scenarios with the tag `@withoutToken` get no init script. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
+- `e2e/features/opening-trainer.feature` (Cucumber.js and Playwright) has 21 scenarios. The first scenario also checks that the page background is `rgb(22, 17, 13)` (`surface-100`), and that the font Karla is loaded (`document.fonts`). One scenario is for Black, one for the number of moves, one for a mistake and its refutation, one for the navigation, one for a phone, one for an exploration from an old position, one for the engine lines, one for a delete, one for Copy PGN, one for the cog, 2 for the token dialog, 4 for the [chess.com source](chess-com-explorer.md), and 2 for the piece sounds. The scenario of a mistake checks the fixed message `Ba6 loses 6.4 pawns. Play Nf3, Nc3 or Bc4.` and the fixed refutation `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. The real Stockfish gives the same scores and lines each time, so they do not change. Only the scenario of 5 moves and the scenario of 3 moves change the `Moves` field. The other scenarios keep the start value of 10. The Background has the explorer table and opens the app. Each scenario starts the line. The step of an explorer table first removes the earlier explorer route, so the table of a scenario replaces the table of the Background. Playwright gives fixed explorer answers. Before each scenario, an init script puts the token `e2e-token` in `localStorage`, when there is no token. Scenarios with the tag `@withoutToken` get no init script. Thus the tests need no real token and no network. The real Stockfish runs in the browser.
 - 2 scenarios are for the [token dialog](token.md). `@withoutToken` The app asks for your token: the dialog is open with no **Cancel**, Escape does not close it, an empty token shows `Paste your Lichess token.`, the saved token goes to the explorer, and after a reload the dialog stays closed. You change the token: **Change token**, a new token, and the explorer gets it. The step of an explorer table keeps the `Authorization` header of each request in `AppWorld.authorizations`. The step `the explorer got the token {string}` waits until the last header is `Bearer <token>`.
 - The step `the moves are` waits until the text that `AppWorld.waitForMoves` makes from `#moveList` is the text of the step. It reads the rows and the variation lines in order. For each row, it takes the number, then the SAN of each move, with ` (42%)` after a move with a %. A variation line gives its tokens with spaces, but with no space after `(` and before `)`, for example `(2. Ba6 Nxa6 3. Nf3 d5 4. exd5 e4 5. Ne5)`. Thus the texts in the feature stay `1. e4 e5 (42%) 2. Nf3`.
 - The steps that use the `Rating`, `Color` and `Moves` fields open the cog first if `#settings` is closed (`AppWorld.openSettings`). The steps `the player right-clicks the move {string}`, `the player clicks {string}` (a button by its name), `the player clicks the cog`, `the settings are open` and `the settings are closed` (`:popover-open`) are for the variations and the cog.
 - The navigation scenario uses the steps `the player presses {string}`, `the player presses {string} in the {string} field`, `the player clicks the move {string}`, `the highlighted move is {string}` and `the board has a {string} on {string}`. `AppWorld.waitForPiece(piece, square)` waits until a `cg-board piece` with the classes of the piece (for example `black knight`) has a `translate` on that square. The square math is the inverse of the clicks of `AppWorld.play`.
 - The engine lines scenario uses the steps `the engine shows {int} lines from {string}` and `the engine lines are hidden`. The first waits for that number of `.engineLine` items. It checks that each `.score` is `+0.3`, `-1.2`, `0.0`, `+M` or `-M` in form, and that each `.moves` starts with the text (for example `1... `). The real Stockfish runs, so the step does not check the moves.
 - The Copy PGN scenario plays a line with a variation and clicks **Copy PGN**. The step `the clipboard has {string}` reads `navigator.clipboard.readText()`. Each browser context gets the permissions `clipboard-read` and `clipboard-write`. The step `the Copy PGN button shows {string}` checks the text `Copied`.
+- The 2 scenarios of the piece sounds count the sounds. Before each scenario, an init script wraps `AudioBufferSourceNode.prototype.start`, so each start adds one to `window.pieceSounds`. The step `the app played {int} sound(s)` waits until the count is that number. You hear the moves: `e4` gives 2 sounds (your move and the reply), **Back** gives none, and **Forward** gives one. You turn the sound off: the step `the player turns the sound off` unchecks **Sound**, `e4` gives no sound, and after a reload the step `the sound is off` finds **Sound** unchecked.
 - The phone scenario uses the step `the screen is {int} by {int} pixels` (`page.setViewportSize`), with 390 × 844 pixels. The step `the move list is under the board` checks that the top of `#moveList` is under the bottom of `#board`. The step `the page does not scroll sideways` checks that the `scrollWidth` of the page is not more than its `clientWidth`. The scenario clicks the navigation buttons with `the player clicks {string}`.
 - The explorer answer in the e2e tests is one row of the table in the feature. The row is the full move number of the FEN (field 6), counted from 1. The third column of the row is the % of the move. The answer has the position total 100, so the screen shows this %.
 - A scenario that navigates after its moves first waits for `the status is "your move"`. `AppWorld.play` returns when the screen shows your move, before the reply comes. When the reply comes, `current` changes and `viewed` goes back to `null`. Thus a navigation before the reply is lost. On a slow computer, for example in CI, the reply comes late.

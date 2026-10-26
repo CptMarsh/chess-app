@@ -1,4 +1,5 @@
 import type { Accuracy, MoveNode, Status } from "../line/messages.ts";
+import type { Sound } from "../sound/sound.ts";
 
 const STATUS_TEXT: Record<Status, string> = {
   yourMove: "your move",
@@ -139,4 +140,11 @@ export function lineMoves(fen: string, sans: string[]): string {
     if (ply % 2 === 0) return `${number}. ${san}`;
     return index === 0 ? `${number}... ${san}` : san;
   }).join(" ");
+}
+
+// The sound of the move from the node "before" to the node "at". Only one move forward has a sound.
+export function soundOf(nodes: MoveNode[], before: number | null, at: number): Sound | null {
+  const node = nodes.find(({ id }) => id === at);
+  if (before === null || node?.parent !== before) return null;
+  return node.san.includes("x") ? "capture" : "move";
 }

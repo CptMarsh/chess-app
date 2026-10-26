@@ -2,7 +2,7 @@ import { test } from "vitest";
 import type { Status } from "../line/messages.ts";
 import {
   thenTheAccuracyTextIs, thenTheBarEvalIs, thenTheBarTextIs, thenTheEvalBarPercentIs, thenTheLineMovesAre, thenTheLineScoreIs, thenTheMoveListIs, thenTheMoveRowsAre, thenThePathEvalsAre,
-  thenThePgnIs, thenTheRatingIs, thenTheStatusTextIs, type TestNode,
+  thenThePgnIs, thenTheRatingIs, thenTheSoundIs, thenTheStatusTextIs, type TestNode,
 } from "./text.steps.ts";
 
 test.each(["", "  "])("The empty rating %j is not a number", (text) => thenTheRatingIs(text, Number.NaN));
@@ -70,3 +70,13 @@ test.each([[30, "+0.3"], [-120, "-1.2"], [0, "0.0"], [-4, "0.0"], [4, "0.0"], [1
 test("The moves of an engine line for White have their numbers", () => thenTheLineMovesAre(["e2e4", "e7e5"], ["Nf3", "Nc6", "Bb5"], "2. Nf3 Nc6 3. Bb5"));
 test("The moves of an engine line for Black start with the number and ...", () => thenTheLineMovesAre(["e2e4"], ["e5", "Nf3", "Nc6"], "1... e5 2. Nf3 Nc6"));
 test("An engine line without moves gives an empty text", () => thenTheLineMovesAre([], [], ""));
+
+// 1. e4 d5 2. exd5 (current), with the variation (1... f6 2. Qh5+) under e4.
+const SOUND_TREE: TestNode[] = [[0, null, "", true], [1, 0, "e2e4", true], [2, 1, "d7d5", true], [3, 2, "e4d5", true], [4, 1, "f7f6", false], [5, 4, "d1h5", false]];
+const CASTLING: TestNode[] = [[0, null, "", true], [1, 0, "e2e4", true], [2, 1, "e7e5", true], [3, 2, "g1f3", true], [4, 3, "b8c6", true], [5, 4, "f1c4", true], [6, 5, "f8c5", true], [7, 6, "e1g1", true]];
+test.each([
+  ["the next move", "move", SOUND_TREE, 1, 2], ["a capture", "capture", SOUND_TREE, 2, 3], ["a check", "move", SOUND_TREE, 4, 5],
+  ["the first move", "move", SOUND_TREE, 0, 1], ["the next move of a variation", "move", SOUND_TREE, 1, 4], ["castling", "move", CASTLING, 6, 7],
+  ["a move back", null, SOUND_TREE, 3, 2], ["a jump of two moves", null, SOUND_TREE, 1, 3], ["the same node", null, SOUND_TREE, 3, 3],
+  ["an other branch", null, SOUND_TREE, 2, 4], ["no node before", null, SOUND_TREE, null, 0],
+] as const)("The sound of %s is %s", (_name, sound, tree, before, at) => thenTheSoundIs([...tree], before, at, sound));

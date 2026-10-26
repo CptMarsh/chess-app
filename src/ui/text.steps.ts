@@ -1,7 +1,8 @@
 import { Chess } from "chess.js";
 import { expect } from "vitest";
 import type { Accuracy, MoveNode, Status } from "../line/messages.ts";
-import { accuracyText, barEval, barText, evalBarPercent, lineMoves, lineScore, moveRows, pathEvals, pgnText, readNumber, statusText, type MoveItem } from "./text.ts";
+import { accuracyText, barEval, barText, evalBarPercent, lineMoves, lineScore, moveRows, pathEvals, pgnText, readNumber, soundOf, statusText, type MoveItem } from "./text.ts";
+import type { Sound } from "../sound/sound.ts";
 
 // A node of a test tree: [id, parent, uci, main, percent, eval]. The san and the fen come from chess.js.
 export type TestNode = [number, number | null, string, boolean, (number | null)?, (number | null)?];
@@ -79,4 +80,8 @@ export function thenTheLineMovesAre(moves: string[], sans: string[], text: strin
   const chess = new Chess();
   for (const move of moves) chess.move({ from: move.slice(0, 2), to: move.slice(2, 4), promotion: move[4] });
   expect(lineMoves(chess.fen(), sans)).toBe(text);
+}
+
+export function thenTheSoundIs(nodes: TestNode[], before: number | null, at: number, sound: Sound | null) {
+  expect(soundOf(treeOf(nodes), before, at)).toBe(sound);
 }

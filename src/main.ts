@@ -5,6 +5,7 @@ import { SourceExplorer } from "./explorer/source.ts";
 import { attachLine } from "./line/line.ts";
 import { LineBus } from "./line/messages.ts";
 import { SettingsStore } from "./settings/settings.ts";
+import { PieceSounds } from "./sound/sound.ts";
 import { TokenStore } from "./token/token.ts";
 import { Trainer } from "./trainer/trainer.ts";
 import { mountTokenDialog } from "./ui/tokenView.ts";
@@ -19,6 +20,6 @@ const explorer = new SourceExplorer(() => settings.source(), new LichessExplorer
 const view = { show: () => {} };
 const trainer = new Trainer(bus, engine, explorer, () => view.show());
 const askToken = mountTokenDialog(document.body, tokens);
-view.show = mountTrainer(document.querySelector<HTMLElement>("#app")!, bus, trainer, askToken, settings);
+view.show = mountTrainer(document.querySelector<HTMLElement>("#app")!, bus, trainer, askToken, settings, new PieceSounds());
 view.show();
 if (settings.source() === "lichess" && tokens.read() === "") askToken();

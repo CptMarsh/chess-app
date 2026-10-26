@@ -179,6 +179,11 @@ body {
   width: 120px;
 }
 
+#settings #sound {
+  width: auto;
+  accent-color: var(--oak);
+}
+
 #settings label[hidden] {
   display: none;
 }

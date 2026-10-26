@@ -144,6 +144,15 @@ Before(async function (this: AppWorld, { pickle }) {
       if (localStorage.getItem("lichessToken") === null) localStorage.setItem("lichessToken", "e2e-token");
     });
   }
+  // Counts the piece sounds: each sound starts one AudioBufferSourceNode.
+  await this.context.addInitScript(() => {
+    const start = AudioBufferSourceNode.prototype.start;
+    Object.assign(window, { pieceSounds: 0 });
+    AudioBufferSourceNode.prototype.start = function (...args) {
+      Object.assign(window, { pieceSounds: (window as unknown as { pieceSounds: number }).pieceSounds + 1 });
+      return start.apply(this, args);
+    };
+  });
   this.page = await this.context.newPage();
 });
 

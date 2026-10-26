@@ -252,3 +252,22 @@ Then("the engine shows {int} lines from {string}", async function (this: AppWorl
 Then("the engine lines are hidden", async function (this: AppWorld) {
   await this.page.locator("#engineLines").waitFor({ state: "hidden", timeout: 30_000 });
 });
+
+Given("the player turns the sound off", async function (this: AppWorld) {
+  await this.openSettings();
+  await this.page.getByLabel("Sound").uncheck();
+});
+
+Then("the app played {int} sound(s)", async function (this: AppWorld, count: number) {
+  const played = () => this.page.evaluate(() => (window as unknown as { pieceSounds: number }).pieceSounds);
+  try {
+    await this.page.waitForFunction((wanted) => (window as unknown as { pieceSounds: number }).pieceSounds === wanted, count, { timeout: 5_000 });
+  } catch {
+    throw new Error(`The app played ${await played()} sounds. Wanted: ${count}.`);
+  }
+});
+
+Then("the sound is off", async function (this: AppWorld) {
+  await this.openSettings();
+  assert.equal(await this.page.getByLabel("Sound").isChecked(), false);
+});
