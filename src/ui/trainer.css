@@ -133,12 +133,13 @@ body {
   cursor: pointer;
 }
 
-#bottom {
+#tools {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 #cog,
+#copyPgn,
 #settings input,
 #settings select {
   padding: 2px var(--space-1);
@@ -149,19 +150,9 @@ body {
   font: inherit;
 }
 
-#cog {
-  display: flex;
-  cursor: pointer;
-}
-
-/* The same style as Change token. */
+#cog,
 #copyPgn {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--ink-muted);
-  font: inherit;
+  display: flex;
   cursor: pointer;
 }
 

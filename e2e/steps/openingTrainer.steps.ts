@@ -106,6 +106,11 @@ When("the player clicks {string}", async function (this: AppWorld, name: string)
   await (NAVIGATION_BUTTONS.includes(name) ? this.navigate(click) : click());
 });
 
+When("the player clicks {string} in the settings", async function (this: AppWorld, name: string) {
+  await this.openSettings();
+  await this.page.locator("#settings").getByRole("button", { name }).click();
+});
+
 When("the player clicks the cog", async function (this: AppWorld) {
   await this.page.getByRole("button", { name: "Settings" }).click();
 });
@@ -256,8 +261,11 @@ Then("the clipboard has {string}", async function (this: AppWorld, text: string)
   assert.equal(await this.page.evaluate(() => navigator.clipboard.readText()), text);
 });
 
-Then("the Copy PGN button shows {string}", async function (this: AppWorld, text: string) {
-  await this.waitForText("#copyPgn", "is", text);
+Then("the copy button is an icon named {string}", async function (this: AppWorld, name: string) {
+  const button = this.page.locator("#top").getByRole("button", { name });
+  await button.waitFor({ timeout: 30_000 });
+  assert.equal((await button.textContent())?.trim(), "");
+  assert.equal(await button.locator("svg").count(), 1);
 });
 
 Then("the engine shows {int} lines from {string}", async function (this: AppWorld, count: number, start: string) {

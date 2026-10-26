@@ -40,8 +40,8 @@ The explorer gives castling as king to rook, for example `e8h8`. `chess.js` refu
 
 | Problem | Message |
 |---|---|
-| The token is empty. | `Save your Lichess token first. Click Change token.` |
-| Lichess gives 401. | `Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token.` |
+| The token is empty. | `Save your Lichess token first. Click Change token in the settings.` |
+| Lichess gives 401. | `Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token in the settings.` |
 | Lichess gives 429. | `Lichess got too many requests. Wait one minute, then start a new line.` |
 | Lichess gives a different status. | `Lichess did not answer (status 503).` (The number is the status.) |
 | The request fails. | `Lichess did not answer (network error).` |

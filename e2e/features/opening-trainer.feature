@@ -44,7 +44,7 @@ Feature: Opening trainer
     Given the explorer refuses the token
     And the player starts a line with the rating "1450"
     When the player plays "e2e4"
-    Then the message is "Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token."
+    Then the message is "Lichess did not accept the token. Make a new token at lichess.org/account/oauth/token, then click Change token in the settings."
     And the status is "line ended"
 
   Scenario: You play Black
@@ -170,7 +170,7 @@ Feature: Opening trainer
     And the player plays "f1c4 g8f6"
     And the player clicks "Copy PGN"
     Then the clipboard has "1. e4 e5 2. Nf3 (2. Bc4 Nf6) 2... Nc6 *"
-    And the Copy PGN button shows "Copied"
+    And the copy button is an icon named "Copied"
 
   Scenario: The settings are behind the cog
     Then the settings are open
@@ -200,7 +200,7 @@ Feature: Opening trainer
     Then the token dialog is closed
 
   Scenario: You change the token
-    When the player clicks "Change token"
+    When the player clicks "Change token" in the settings
     Then the token dialog is open
     When the player saves the token "new-token"
     Then the token dialog is closed
