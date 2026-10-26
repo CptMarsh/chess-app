@@ -13,7 +13,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Line](line.md): the rules of one opening line and its move tree with variations, as commands and queries on the bus.
 - [Lichess explorer](lichess-explorer.md): the adapter that gets the most common replies of a position from Lichess.
 - [chess.com explorer and source explorer](chess-com-explorer.md): the adapter that gets the replies of a position from your own chess.com games, and the adapter that sends each request to the explorer of the chosen source.
-- [Settings store](settings.md): the adapter that keeps the source of the replies, your chess.com username and the Sound switch in the browser.
+- [Settings store](settings.md): the adapter that keeps the source of the replies, your chess.com username, the Sound switch and the Rating, Color and Moves fields in the browser.
 - [Piece sounds](sound.md): the adapter that plays the recorded move sound and capture sound with the Web Audio API.
 - [Token store and token dialog](token.md): the adapter that keeps your Lichess token in the browser, and the dialog that asks you for it.
 - [Stockfish engine](engine.md): the adapter that examines a position and scores a move with Stockfish in a Web Worker, one request at a time.
@@ -32,6 +32,7 @@ The chess app helps a person become better at chess. It runs only in the browser
 - [Engine lines in explore mode](superpowers/specs/2026-10-25-engine-lines-design.md): in explore mode, the panel shows the 3 best Stockfish lines of the position on the board.
 - [Copy PGN](superpowers/specs/2026-10-25-copy-pgn-design.md): a button that puts the PGN of the move tree, with its variations, on the clipboard.
 - [Reply source](superpowers/specs/2026-10-25-reply-source-design.md): the replies and their % come from the Lichess explorer or from your own games on chess.com. The rating works with each source.
+- [Saved settings](superpowers/specs/2026-10-25-saved-settings-design.md): the app keeps the Rating, Color and Moves fields in the browser. With saved settings, the cog does not open when the app starts.
 - [Big screen view](superpowers/specs/2026-10-26-big-screen-design.md): on a big screen, the board grows with the window. The panel gets 320 to 480 pixels. The text keeps its size.
 - [Copy icon and Change token in the settings](superpowers/specs/2026-10-26-copy-icon-token-in-settings-design.md): Copy PGN is an icon next to the cog, and Change token is in the settings.
 - [Piece sounds](superpowers/specs/2026-10-26-piece-sounds-design.md): a move sound and a capture sound when a move comes on the board, and a Sound switch in the cog.

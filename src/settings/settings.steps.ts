@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { SettingsStore, type Source } from "./settings.ts";
+import { SettingsStore, type LineSettings, type Source } from "./settings.ts";
 
 type TestStore = { store: SettingsStore; items: Map<string, string> };
 
@@ -51,4 +51,16 @@ export function thenTheSoundIs(test: TestStore, on: boolean) {
 
 export function thenTheStoredSoundIs(test: TestStore, value: string) {
   expect(test.items.get("pieceSound")).toBe(value);
+}
+
+export function whenYouSaveTheLine(test: TestStore, line: LineSettings) {
+  test.store.saveLine(line);
+}
+
+export function thenTheLineIs(test: TestStore, line: LineSettings | null) {
+  expect(test.store.line()).toEqual(line);
+}
+
+export function thenTheStoredLineIs(test: TestStore, text: string) {
+  expect(test.items.get("lineSettings")).toBe(text);
 }

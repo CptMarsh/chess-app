@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import {
-  givenABlockedStorage, givenAStorageThatRefusesWrites, givenAStorageWith, thenTheSettingsAre, thenTheSoundIs, thenTheStoredSettingsAre, thenTheStoredSoundIs,
-  whenYouSave, whenYouSaveTheSound,
+  givenABlockedStorage, givenAStorageThatRefusesWrites, givenAStorageWith, thenTheLineIs, thenTheSettingsAre, thenTheSoundIs, thenTheStoredLineIs,
+  thenTheStoredSettingsAre, thenTheStoredSoundIs, whenYouSave, whenYouSaveTheLine, whenYouSaveTheSound,
 } from "./settings.steps.ts";
 
 test("The stored source and username are read", () => {
@@ -59,4 +59,28 @@ test("A refused write keeps the sound in memory", () => {
   const store = givenAStorageThatRefusesWrites();
   whenYouSaveTheSound(store, false);
   thenTheSoundIs(store, false);
+});
+
+const LINE = { rating: "1450", color: "black", moves: "5" } as const;
+
+test("No stored line settings give null", () => thenTheLineIs(givenAStorageWith({}), null));
+
+test("The stored line settings are read", () => thenTheLineIs(givenAStorageWith({ lineSettings: JSON.stringify(LINE) }), LINE));
+
+test.each(["not json", "null", "[]", '{"rating":"1450"}', '{"rating":"1450","color":"red","moves":"5"}', '{"rating":1450,"color":"white","moves":"5"}'])(
+  "The stored line settings %j give null", (text) => thenTheLineIs(givenAStorageWith({ lineSettings: text }), null));
+
+test("A blocked storage gives no line settings", () => thenTheLineIs(givenABlockedStorage(), null));
+
+test("Saved line settings are written", () => {
+  const store = givenAStorageWith({});
+  whenYouSaveTheLine(store, LINE);
+  thenTheLineIs(store, LINE);
+  thenTheStoredLineIs(store, JSON.stringify(LINE));
+});
+
+test("A refused write keeps the line settings in memory", () => {
+  const store = givenAStorageThatRefusesWrites();
+  whenYouSaveTheLine(store, LINE);
+  thenTheLineIs(store, LINE);
 });

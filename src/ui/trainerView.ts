@@ -40,7 +40,7 @@ const CHECK = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" strok
 
 type Drop = { line: true } | { line: false; at: number };
 
-export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove" | "examine">, changeToken: () => void, store: Pick<SettingsStore, "source" | "username" | "save" | "sound" | "saveSound">, sounds: Pick<PieceSounds, "play">): () => void {
+export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trainer, "start" | "yourMove" | "exploreMove" | "examine">, changeToken: () => void, store: Pick<SettingsStore, "source" | "username" | "save" | "sound" | "saveSound" | "line" | "saveLine">, sounds: Pick<PieceSounds, "play">): () => void {
   root.innerHTML = `
     <div id="boardRow">
       <div id="evalBar"><div id="evalBarWhite"></div><span id="evalBarText"></span></div>
@@ -132,6 +132,15 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
       message.textContent = error.message;
     });
   });
+
+  const savedLine = store.line();
+  if (savedLine !== null) {
+    rating.value = savedLine.rating;
+    color.value = savedLine.color;
+    movesField.value = savedLine.moves;
+  }
+  const saveLine = () => store.saveLine({ rating: rating.value, color: color.value as Color, moves: movesField.value });
+  for (const field of [rating, color, movesField]) field.addEventListener("change", saveLine);
 
   source.value = store.source();
   username.value = store.username();
@@ -267,7 +276,7 @@ export function mountTrainer(root: HTMLElement, bus: LineBus, trainer: Pick<Trai
     menuTarget = null;
   });
 
-  settings.showPopover();
+  if (savedLine === null) settings.showPopover();
   return show;
 }
 

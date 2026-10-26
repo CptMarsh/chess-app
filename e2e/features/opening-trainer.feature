@@ -181,6 +181,16 @@ Feature: Opening trainer
     When the player presses "Escape"
     Then the settings are closed
 
+  Scenario: The app keeps the settings
+    Given the player chooses the color "Black"
+    And the player chooses 5 moves
+    And the player starts a line with the rating "1450"
+    When the player reloads the app
+    Then the settings are closed
+    And the Rating field shows "1450"
+    And the Color field shows "Black"
+    And the Moves field shows "5"
+
   @withoutToken
   Scenario: The app asks for your token
     Then the token dialog is open
