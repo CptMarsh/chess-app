@@ -3,6 +3,8 @@ import { chromium, type Browser, type BrowserContext, type Page } from "playwrig
 import { createServer, type ViteDevServer } from "vite";
 
 const WAIT = 30_000;
+// The statuses in which no answer of the line is pending. When the reply comes, the view goes back to the current position.
+const NO_PENDING_ANSWER = ["Status: your move", "Status: try again", "Status: line ended"];
 
 let server: ViteDevServer;
 let browser: Browser;
@@ -55,6 +57,15 @@ export class AppWorld extends World {
       }
       await this.page.waitForTimeout(50);
     }
+  }
+
+  // A navigation before the reply is undone when the reply comes. Thus the scenario must wait for the reply first.
+  async navigate(action: () => Promise<void>) {
+    const status = (await this.page.textContent("#status")) ?? "";
+    if (!NO_PENDING_ANSWER.includes(status)) {
+      throw new Error(`The player navigates while the screen shows "${status}". Wait first, for example with: Then the status is "your move".`);
+    }
+    await action();
   }
 
   async play(move: string) {

@@ -4,6 +4,8 @@ import type { AppWorld } from "../support/world.ts";
 
 const EXPLORER = "https://explorer.lichess.ovh/**";
 const ANY_ORIGIN = { "access-control-allow-origin": "*" };
+const NAVIGATION_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+const NAVIGATION_BUTTONS = ["Start", "Back", "Forward", "End"];
 
 Given("the explorer replies in turn:", async function (this: AppWorld, table: DataTable) {
   const rows = table.raw();
@@ -82,7 +84,8 @@ When("the player plays {string}", async function (this: AppWorld, moves: string)
 });
 
 When("the player presses {string}", async function (this: AppWorld, key: string) {
-  await this.page.keyboard.press(key);
+  const press = () => this.page.keyboard.press(key);
+  await (NAVIGATION_KEYS.includes(key) ? this.navigate(press) : press());
 });
 
 When("the player presses {string} in the {string} field", async function (this: AppWorld, key: string, field: string) {
@@ -91,7 +94,7 @@ When("the player presses {string} in the {string} field", async function (this: 
 });
 
 When("the player clicks the move {string}", async function (this: AppWorld, move: string) {
-  await this.page.locator("#moveList .move").filter({ has: this.page.locator(".san", { hasText: new RegExp(`^${move}$`) }) }).click();
+  await this.navigate(() => this.page.locator("#moveList .move").filter({ has: this.page.locator(".san", { hasText: new RegExp(`^${move}$`) }) }).click());
 });
 
 When("the player right-clicks the move {string}", async function (this: AppWorld, move: string) {
@@ -99,7 +102,8 @@ When("the player right-clicks the move {string}", async function (this: AppWorld
 });
 
 When("the player clicks {string}", async function (this: AppWorld, name: string) {
-  await this.page.getByRole("button", { name }).click();
+  const click = () => this.page.getByRole("button", { name }).click();
+  await (NAVIGATION_BUTTONS.includes(name) ? this.navigate(click) : click());
 });
 
 When("the player clicks the cog", async function (this: AppWorld) {
