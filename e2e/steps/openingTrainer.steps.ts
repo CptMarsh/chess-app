@@ -232,6 +232,22 @@ Then("the page does not scroll sideways", async function (this: AppWorld) {
   assert.ok(widths.page <= widths.screen, `The page is ${widths.page} pixels wide. The screen is ${widths.screen} pixels wide.`);
 });
 
+Then("the board is more than {int} pixels wide", async function (this: AppWorld, width: number) {
+  const board = (await this.page.locator("#board").boundingBox())!;
+  assert.ok(board.width > width, `The board is ${board.width} pixels wide.`);
+});
+
+Then("the move list is at the right of the board", async function (this: AppWorld) {
+  const board = (await this.page.locator("#board").boundingBox())!;
+  const moveList = (await this.page.locator("#moveList").boundingBox())!;
+  assert.ok(moveList.x >= board.x + board.width, `The move list starts at ${moveList.x}. The board ends at ${board.x + board.width}.`);
+});
+
+Then("the page does not scroll down", async function (this: AppWorld) {
+  const heights = await this.page.evaluate(() => ({ page: document.documentElement.scrollHeight, screen: document.documentElement.clientHeight }));
+  assert.ok(heights.page <= heights.screen, `The page is ${heights.page} pixels high. The screen is ${heights.screen} pixels high.`);
+});
+
 Then("the clipboard has {string}", async function (this: AppWorld, text: string) {
   assert.equal(await this.page.evaluate(() => navigator.clipboard.readText()), text);
 });
